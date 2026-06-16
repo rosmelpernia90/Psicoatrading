@@ -1,0 +1,27 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/psicoatrading-repo
+            git pull origin main
+            cp web/index.html /home/psicoatrading.online/public_html/index.html
+            cp app/index.html /home/psicoatrading.online/public_html/app/index.html
+            cp api/main.py /var/www/api/main.py
+            cp api/schema.sql /var/www/api/schema.sql
+            cp api/requirements.txt /var/www/api/requirements.txt
+            cd /var/www/api && source venv/bin/activate && pip install -r requirements.txt --quiet
+            systemctl restart psicoatrading-api
+            echo "Deploy completado: $(date)"
