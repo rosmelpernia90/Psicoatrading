@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PsicoaTrading — Panel Clínico</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#b8922a;--gold2:#d4a843;--gold-soft:#f6ead0;
+  --ink:#2c2820;--ink2:#6b6560;--ink3:#9c9690;
+  --bg:#f7f6f3;--bg2:#efeee9;--bg3:#e6e5e0;--white:#fff;--border:#e0ddd8;
+  --green:#2d8a5e;--green-bg:#e8f5ef;--blue:#1a6bb5;--blue-bg:#eaf2fb;
+  --amber:#b87a1a;--amber-bg:#fef3e0;--red:#c13628;--red-bg:#fbe9e6;
+  --sidebar-w:240px;--header-h:64px;
+  --r:10px;--r2:8px;--sh:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);
+}
+html{height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:var(--bg);min-height:100%;line-height:1.6}
+h1,h2,h3{font-family:'Playfair Display',serif;font-weight:600}
+h1{font-size:1.6rem}h2{font-size:1.3rem}h3{font-size:1.1rem}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg) 0%,var(--gold-soft) 100%)}
+.login-card{background:var(--white);border-radius:16px;padding:2.5rem;width:100%;max-width:380px;box-shadow:var(--sh)}
+.login-logo{text-align:center;margin-bottom:1.5rem}
+.login-logo h2{font-size:1.5rem;color:var(--ink)}
+.login-logo p{font-size:.8rem;color:var(--ink3);letter-spacing:.15em;text-transform:uppercase;font-weight:600}
+.login-field{margin-bottom:1rem}
+.login-field label{display:block;font-size:.78rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:5px}
+.login-field input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r2);font-size:.92rem;outline:none;transition:border .2s}
+.login-field input:focus{border-color:var(--gold)}
+.login-btn{width:100%;padding:13px;background:var(--gold);color:#fff;border:none;border-radius:var(--r2);font-size:.95rem;font-weight:600;transition:background .2s;margin-top:.5rem}
+.login-btn:hover{background:var(--gold2)}
+.login-err{color:var(--red);font-size:.85rem;margin-top:.5rem;text-align:center;min-height:1.2em}
+
+/* LAYOUT */
+.app{display:none;min-height:100vh}
+.app.active{display:flex}
+.sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column}
+.sb-brand{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border)}
+.sb-brand h3{font-size:1.15rem;color:var(--ink);line-height:1.2}
+.sb-brand p{font-size:.65rem;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700}
+.sb-nav{flex:1;padding:.75rem 0}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 1.5rem;font-size:.88rem;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.sb-item:hover{background:var(--bg);color:var(--ink)}
+.sb-item.active{background:var(--gold-soft);color:var(--gold);font-weight:600}
+.sb-item .ic{width:20px;text-align:center;font-size:1rem}
+.sb-footer{padding:1rem 1.5rem;border-top:1px solid var(--border)}
+.sb-user{font-size:.85rem;font-weight:600;color:var(--ink)}
+.sb-role{font-size:.72rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
+.sb-logout{margin-top:.5rem;font-size:.8rem;color:var(--red);background:none;border:none;padding:0;font-weight:500}
+.sb-logout:hover{text-decoration:underline}
+.main{margin-left:var(--sidebar-w);flex:1;padding:2rem;min-height:100vh}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:1.5rem}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.25rem}
+.kpi-label{font-size:.7rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px}
+.kpi-value{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:600;color:var(--ink);line-height:1}
+.kpi-sub{font-size:.75rem;color:var(--ink3);margin-top:3px}
+.kpi-value.danger{color:var(--red)}.kpi-value.warning{color:var(--amber)}.kpi-value.good{color:var(--green)}.kpi-value.gold{color:var(--gold)}
+
+/* SECTIONS */
+.section-title{font-size:.75rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;padding:10px 14px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--ink3);border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.td-name{color:var(--ink);font-weight:600;cursor:pointer}
+.td-name:hover{color:var(--gold);text-decoration:underline}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:.03em}
+.pill-green{background:var(--green-bg);color:var(--green)}.pill-blue{background:var(--blue-bg);color:var(--blue)}
+.pill-amber{background:var(--amber-bg);color:var(--amber)}.pill-red{background:var(--red-bg);color:var(--red)}
+.pill-gold{background:var(--gold-soft);color:var(--gold)}
+
+/* DETAIL VIEW */
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.detail-back{font-size:.85rem;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:var(--r2);padding:7px 14px;transition:all .15s}
+.detail-back:hover{border-color:var(--gold);color:var(--gold)}
+.detail-name{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:600;color:var(--ink)}
+.detail-meta{font-size:.85rem;color:var(--ink3);margin-top:2px}
+.detail-tabs{display:flex;gap:4px;margin-bottom:1.25rem;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab-btn{padding:9px 16px;font-size:.85rem;font-weight:500;color:var(--ink2);background:none;border:none;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:600}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:'';position:absolute;left:6px;top:0;bottom:0;width:1px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:1.25rem}
+.tl-dot{position:absolute;left:-22px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid var(--white);background:var(--gold)}
+.tl-date{font-size:.72rem;color:var(--ink3);margin-bottom:3px}
+.tl-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:12px}
+.tl-type{font-size:.7rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:3px}
+.tl-profile{font-weight:600;color:var(--ink);margin-bottom:4px}
+.tl-scores{display:flex;gap:6px;flex-wrap:wrap}
+.tl-score-tag{background:var(--white);border-radius:4px;padding:2px 7px;font-size:.72rem;color:var(--ink2)}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.75rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:5px}
+.form-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2);font-size:.9rem;outline:none;transition:border .2s;background:var(--white)}
+.form-input:focus{border-color:var(--gold)}
+textarea.form-input{min-height:90px;resize:vertical}
+.btn-gold{padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:var(--r2);font-size:.88rem;font-weight:600;transition:background .2s}
+.btn-gold:hover{background:var(--gold2)}
+.btn-outline{padding:10px 20px;background:none;color:var(--ink2);border:1px solid var(--border);border-radius:var(--r2);font-size:.88rem;font-weight:500;transition:all .15s}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+
+/* BARS */
+.bar-wrap{margin-bottom:8px}
+.bar-labels{display:flex;justify-content:space-between;font-size:.78rem;color:var(--ink2);margin-bottom:3px}
+.bar-track{background:var(--bg3);border-radius:3px;height:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.fill-green{background:var(--green)}.fill-blue{background:var(--blue)}.fill-amber{background:var(--amber)}.fill-red{background:var(--red)}.fill-gold{background:var(--gold)}
+
+/* DIST GRID */
+.dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dist-item{background:var(--bg);border-radius:var(--r2);padding:10px 12px}
+.dist-name{font-size:.85rem;font-weight:500;color:var(--ink);margin-bottom:4px}
+.dist-bar{background:var(--bg3);border-radius:3px;height:4px;overflow:hidden;margin-bottom:3px}
+.dist-fill{height:100%;border-radius:3px;background:var(--gold)}
+.dist-pct{font-size:.72rem;color:var(--ink3)}
+
+/* SEARCH */
+.search-bar{display:flex;gap:8px;margin-bottom:1rem}
+.search-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r2);font-size:.9rem;outline:none;background:var(--white)}
+.search-input:focus{border-color:var(--gold)}
+
+/* LOADING */
+.loading{text-align:center;padding:3rem;color:var(--ink3);font-size:.9rem}
+
+/* RESPONSIVE */
+@media(max-width:800px){
+  .sidebar{width:60px;overflow:hidden}
+  .sb-brand h3,.sb-brand p,.sb-item span:not(.ic),.sb-footer{display:none}
+  .sb-item{justify-content:center;padding:12px}
+  .main{margin-left:60px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .dist-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div class="login-wrap" id="login-view">
+  <div class="login-card">
+    <div class="login-logo">
+      <h2>PsicoaTrading</h2>
+      <p>Panel Clínico</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="tu@email.com" value="admin@psicoatrading.com">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" value="PsicoaTrading2025!">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar al panel</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="app" id="app-view">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand"><h3>PsicoaTrading</h3><p>Panel Clínico</p></div>
+    <nav class="sb-nav">
+      <button class="sb-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">📊</span><span>Dashboard</span></button>
+      <button class="sb-item" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
+      <button class="sb-item" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
+      <button class="sb-item" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user" id="sb-user"></div>
+      <div class="sb-role" id="sb-role"></div>
+      <button class="sb-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- DASHBOARD -->
+    <div class="view-panel active" id="view-dashboard">
+      <h1 style="margin-bottom:1.5rem">Dashboard</h1>
+      <div class="kpi-grid" id="kpi-grid"><div class="loading">Cargando datos...</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="card">
+          <div class="section-title">Distribución de perfiles</div>
+          <div id="profile-dist"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Embudo de ventas</div>
+          <div id="funnel-dist"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS LIST -->
+    <div class="view-panel" id="view-leads">
+      <h1 style="margin-bottom:1rem">Pacientes</h1>
+      <div class="search-bar">
+        <input class="search-input" id="lead-search" placeholder="Buscar por nombre o email..." oninput="filterLeads()">
+        <button class="btn-gold" onclick="loadLeads()">Actualizar</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Etapa</th><th>Tests</th><th>Fecha</th></tr></thead>
+            <tbody id="leads-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAD DETAIL -->
+    <div class="view-panel" id="view-detail">
+      <div id="detail-content"></div>
+    </div>
+
+    <!-- EMAILS -->
+    <div class="view-panel" id="view-emails">
+      <h1 style="margin-bottom:1rem">Cola de emails</h1>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Lead</th><th>Paso</th><th>Asunto</th><th>Estado</th><th>Programado</th><th>Enviado</th></tr></thead>
+            <tbody id="emails-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SESSIONS -->
+    <div class="view-panel" id="view-sessions">
+      <h1 style="margin-bottom:1rem">Sesiones</h1>
+      <div class="card"><p style="color:var(--ink3)">Las sesiones aparecen aquí cuando los pacientes las agendan desde la web o cuando un psicólogo las crea desde el detalle del paciente.</p></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API = localStorage.getItem('pt_api_url') || '';
+let TOKEN = localStorage.getItem('pt_token') || '';
+let USER = JSON.parse(localStorage.getItem('pt_user') || 'null');
+let allLeads = [];
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  try {
+    const res = await fetch(API + path, { ...opts, headers });
+    if (res.status === 401) { doLogout(); return null; }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'Error'); }
+    return await res.json();
+  } catch (e) {
+    console.error('API Error:', e);
+    return null;
+  }
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  fetch(API + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pass })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.access_token) {
+      TOKEN = data.access_token;
+      USER = { name: data.name, role: data.role };
+      localStorage.setItem('pt_token', TOKEN);
+      localStorage.setItem('pt_user', JSON.stringify(USER));
+      enterApp();
+    } else {
+      errEl.textContent = data.detail || 'Credenciales inválidas';
+    }
+  })
+  .catch(() => { errEl.textContent = 'Error de conexión con el servidor'; });
+}
+
+function doLogout() {
+  TOKEN = ''; USER = null;
+  localStorage.removeItem('pt_token');
+  localStorage.removeItem('pt_user');
+  document.getElementById('login-view').style.display = '';
+  document.getElementById('app-view').classList.remove('active');
+}
+
+function enterApp() {
+  document.getElementById('login-view').style.display = 'none';
+  document.getElementById('app-view').classList.add('active');
+  document.getElementById('sb-user').textContent = USER?.name || 'Admin';
+  document.getElementById('sb-role').textContent = USER?.role || 'admin';
+  showView('dashboard');
+}
+
+// Auto-login if token exists
+if (TOKEN && USER) enterApp();
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showView(name) {
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('view-' + name);
+  if (panel) panel.classList.add('active');
+  const btn = document.querySelector('.sb-item[data-view="' + name + '"]');
+  if (btn) btn.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'leads') loadLeads();
+  if (name === 'emails') loadEmails();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  const data = await api('/api/dashboard/stats');
+  if (!data) { document.getElementById('kpi-grid').innerHTML = '<div class="loading">No se pudo conectar al servidor</div>'; return; }
+  const riskClass = (v) => v > 0 ? 'danger' : 'good';
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Total leads</div><div class="kpi-value">${data.total_leads}</div><div class="kpi-sub">registrados</div></div>
+    <div class="kpi"><div class="kpi-label">Tests completados</div><div class="kpi-value gold">${data.total_tests}</div><div class="kpi-sub">Test A: ${data.tests_a} · Test B: ${data.tests_b}</div></div>
+    <div class="kpi"><div class="kpi-label">Alertas clínicas</div><div class="kpi-value danger">${data.alerts_danger}</div><div class="kpi-sub">requieren atención</div></div>
+    <div class="kpi"><div class="kpi-label">Intervención rec.</div><div class="kpi-value warning">${data.alerts_warning}</div><div class="kpi-sub">seguimiento</div></div>
+    <div class="kpi"><div class="kpi-label">Puntuación media</div><div class="kpi-value gold">${data.avg_percentile}%</div><div class="kpi-sub">percentil promedio</div></div>
+    <div class="kpi"><div class="kpi-label">Sesiones pendientes</div><div class="kpi-value">${data.pending_sessions}</div><div class="kpi-sub">por confirmar</div></div>
+    <div class="kpi"><div class="kpi-label">Emails enviados</div><div class="kpi-value good">${data.emails_sent}</div><div class="kpi-sub">${data.emails_pending} pendientes</div></div>
+  `;
+  // Profile distribution
+  const profHtml = data.profile_distribution?.length ? data.profile_distribution.map(p => {
+    const pct = data.total_tests ? Math.round(p.count / data.total_tests * 100) : 0;
+    return `<div class="dist-item"><div class="dist-name">${p.name}</div><div class="dist-bar"><div class="dist-fill" style="width:${pct}%"></div></div><div class="dist-pct">${p.count} · ${pct}%</div></div>`;
+  }).join('') : '<div style="color:var(--ink3);font-size:.85rem">Sin datos aún</div>';
+  document.getElementById('profile-dist').innerHTML = '<div class="dist-grid">' + profHtml + '</div>';
+  // Funnel distribution
+  const funnelLabels = { new: 'Nuevo', test_completed: 'Test completado', email_sequence: 'En secuencia', session_booked: 'Sesión agendada', client: 'Cliente', inactive: 'Inactivo' };
+  const funnelHtml = data.funnel_distribution?.length ? data.funnel_distribution.map(f => {
+    const pct = data.total_leads ? Math.round(f.count / data.total_leads * 100) : 0;
+    return `<div class="dist-item"><div class="dist-name">${funnelLabels[f.stage] || f.stage}</div><div class="dist-bar"><div class="dist-fill" style="width:${pct}%"></div></div><div class="dist-pct">${f.count} · ${pct}%</div></div>`;
+  }).join('') : '<div style="color:var(--ink3);font-size:.85rem">Sin datos aún</div>';
+  document.getElementById('funnel-dist').innerHTML = '<div class="dist-grid">' + funnelHtml + '</div>';
+}
+
+// ============================================================
+// LEADS
+// ============================================================
+async function loadLeads() {
+  const data = await api('/api/leads?limit=100');
+  if (!data) return;
+  allLeads = data.leads || [];
+  renderLeads(allLeads);
+}
+
+function filterLeads() {
+  const q = document.getElementById('lead-search').value.toLowerCase();
+  const filtered = allLeads.filter(l => l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q));
+  renderLeads(filtered);
+}
+
+function renderLeads(leads) {
+  const pillMap = { new: 'pill-blue', test_completed: 'pill-gold', email_sequence: 'pill-amber', session_booked: 'pill-green', client: 'pill-green', inactive: 'pill-red' };
+  const stageLabels = { new: 'Nuevo', test_completed: 'Test', email_sequence: 'Emails', session_booked: 'Sesión', client: 'Cliente', inactive: 'Inactivo' };
+  const tbody = document.getElementById('leads-tbody');
+  if (!leads.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay pacientes registrados aún.</td></tr>'; return; }
+  tbody.innerHTML = leads.map(l => `<tr>
+    <td class="td-name" onclick="openLead(${l.id})">${l.name}</td>
+    <td>${l.email}</td>
+    <td>${l.country || '—'}</td>
+    <td><span class="pill ${pillMap[l.funnel_stage] || 'pill-blue'}">${stageLabels[l.funnel_stage] || l.funnel_stage}</span></td>
+    <td>${l.tests_count}</td>
+    <td style="color:var(--ink3)">${l.created_at ? new Date(l.created_at).toLocaleDateString('es-CO') : '—'}</td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// LEAD DETAIL
+// ============================================================
+async function openLead(id) {
+  showView('detail');
+  const el = document.getElementById('detail-content');
+  el.innerHTML = '<div class="loading">Cargando historial...</div>';
+  const data = await api('/api/leads/' + id);
+  if (!data) { el.innerHTML = '<div class="loading">Error cargando paciente</div>'; return; }
+  const riskPill = { good: 'pill-green', moderate: 'pill-blue', warning: 'pill-amber', danger: 'pill-red' };
+  const riskLabel = { good: 'Saludable', moderate: 'Moderado', warning: 'Intervención', danger: 'Alerta' };
+
+  // Build dimension bars
+  function dimBars(dims) {
+    return dims.map(d => {
+      const pct = Math.round(d.score / d.max * 100);
+      const cls = pct >= 70 ? 'fill-green' : pct >= 45 ? 'fill-blue' : pct >= 25 ? 'fill-amber' : 'fill-red';
+      return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${d.max}</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+  }
+
+  // Timeline items
+  const timelineItems = [
+    ...data.test_results.map(t => ({
+      date: t.completed_at, type: 'test',
+      html: `<div class="tl-type">Test ${t.test_type} — ${t.test_type === 'A' ? 'Perfil Psicológico' : 'Auditoría Plan'}</div>
+             <div class="tl-profile">${t.profile_name} · <span class="pill ${riskPill[t.risk_level]}">${riskLabel[t.risk_level]}</span></div>
+             <div style="font-size:.82rem;color:var(--ink2);margin:6px 0">Puntuación: ${t.scaled_score}/${t.max_score} (${t.percentile}%)</div>
+             ${dimBars(t.dimensions)}`
+    })),
+    ...data.notes.map(n => ({
+      date: n.created_at, type: 'note',
+      html: `<div class="tl-type" style="color:var(--blue)">Nota clínica — ${n.psychologist || 'Psicólogo'}</div>
+             ${n.diagnosis ? '<div style="font-size:.85rem;margin:4px 0"><strong>Diagnóstico:</strong> ' + n.diagnosis + '</div>' : ''}
+             ${n.intervention_plan ? '<div style="font-size:.85rem;margin:4px 0"><strong>Plan:</strong> ' + n.intervention_plan + '</div>' : ''}
+             ${n.follow_up ? '<div style="font-size:.85rem;margin:4px 0"><strong>Seguimiento:</strong> ' + n.follow_up + '</div>' : ''}`
+    })),
+    ...data.sessions.map(s => ({
+      date: s.scheduled_at, type: 'session',
+      html: `<div class="tl-type" style="color:var(--green)">Sesión ${s.type} — ${s.status}</div>`
+    }))
+  ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  // Email status
+  const emailRows = data.emails?.map(e => {
+    const statusPill = { pending: 'pill-amber', sent: 'pill-green', failed: 'pill-red', cancelled: 'pill-blue' };
+    return `<tr><td>Paso ${e.step}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status]}">${e.status}</span></td><td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="color:var(--ink3)">Sin emails programados</td></tr>';
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <button class="detail-back" onclick="showView('leads')">← Volver a pacientes</button>
+        <div class="detail-name" style="margin-top:.75rem">${data.name}</div>
+        <div class="detail-meta">${data.email} · ${data.country || ''} · ${data.experience || ''} · ${data.market || ''}</div>
+      </div>
+      <span class="pill ${riskPill[data.funnel_stage === 'client' ? 'good' : 'gold'] || 'pill-gold'}" style="font-size:.8rem">${data.funnel_stage}</span>
+    </div>
+
+    <div class="detail-tabs">
+      <button class="tab-btn active" onclick="switchTab('timeline',this)">Línea de tiempo</button>
+      <button class="tab-btn" onclick="switchTab('emails-tab',this)">Emails (${data.emails?.length || 0})</button>
+      <button class="tab-btn" onclick="switchTab('note-form',this)">+ Nota clínica</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-timeline">
+      ${timelineItems.length ? '<div class="timeline">' + timelineItems.map(t =>
+        `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${t.date ? new Date(t.date).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '—'}</div><div class="tl-card">${t.html}</div></div>`
+      ).join('') + '</div>' : '<div style="color:var(--ink3);padding:2rem;text-align:center">Sin historial aún</div>'}
+    </div>
+
+    <div class="tab-panel" id="tab-emails-tab">
+      <div class="card">
+        <table><thead><tr><th>Paso</th><th>Asunto</th><th>Estado</th><th>Programado</th></tr></thead>
+        <tbody>${emailRows}</tbody></table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-note-form">
+      <div class="card">
+        <h3 style="margin-bottom:1rem">Nueva nota clínica</h3>
+        <div class="form-group full">
+          <label class="form-label">Diagnóstico</label>
+          <textarea class="form-input" id="note-diagnosis" placeholder="Observaciones clínicas, diagnóstico diferencial..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Plan de intervención</label>
+          <textarea class="form-input" id="note-plan" placeholder="Plan de trabajo, técnicas a aplicar..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Seguimiento</label>
+          <textarea class="form-input" id="note-followup" placeholder="Próximos pasos, tareas para el paciente..."></textarea>
+        </div>
+        <button class="btn-gold" onclick="saveNote(${data.id})">Guardar nota</button>
+      </div>
+    </div>
+  `;
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('#view-detail .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#view-detail .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabId)?.classList.add('active');
+  btn.classList.add('active');
+}
+
+async function saveNote(leadId) {
+  const data = {
+    lead_id: leadId,
+    diagnosis: document.getElementById('note-diagnosis').value,
+    intervention_plan: document.getElementById('note-plan').value,
+    follow_up: document.getElementById('note-followup').value
+  };
+  const res = await api('/api/clinical-notes', { method: 'POST', body: JSON.stringify(data) });
+  if (res?.ok) {
+    alert('Nota guardada correctamente');
+    openLead(leadId);
+  } else {
+    alert('Error al guardar la nota');
+  }
+}
+
+// ============================================================
+// EMAILS
+// ============================================================
+async function loadEmails() {
+  const data = await api('/api/email-queue');
+  const tbody = document.getElementById('emails-tbody');
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay emails en cola</td></tr>'; return; }
+  const statusPill = { pending: 'pill-amber', sent: 'pill-green', failed: 'pill-red', cancelled: 'pill-blue' };
+  tbody.innerHTML = data.map(e => `<tr>
+    <td class="td-name" onclick="openLead(${e.lead_id})">Lead #${e.lead_id}</td>
+    <td>Paso ${e.step}</td>
+    <td>${e.subject || '—'}</td>
+    <td><span class="pill ${statusPill[e.status]}">${e.status}</span></td>
+    <td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td>
+    <td style="color:var(--ink3)">${e.sent_at ? new Date(e.sent_at).toLocaleDateString('es-CO') : '—'}</td>
+  </tr>`).join('');
+}
+</script>
+</body>
+</html>
