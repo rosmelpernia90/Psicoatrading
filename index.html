@@ -151,6 +151,7 @@ svg.ic{display:block}
 
 /* ===== FEATURES ===== */
 .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.feat-grid-2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:760px;margin:0 auto}
 .feat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:2rem 1.9rem;transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s;position:relative;overflow:hidden}
 .feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,var(--gold));transform:scaleX(0);transition:transform .35s var(--ease);transform-origin:left}
 .feat-card:hover{box-shadow:var(--sh);transform:translateY(-4px);border-color:transparent}
@@ -209,19 +210,34 @@ svg.ic{display:block}
 .tc-role{font-size:.76rem;color:var(--ink3);font-weight:400}
 
 /* ===== PRICING ===== */
-.price-wrap{display:flex;justify-content:center}
-.price-card{position:relative;background:var(--white);border-radius:22px;padding:3rem 2.8rem;max-width:520px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(22,168,146,.16)}
-.price-card::before{content:'';position:absolute;inset:0;border-radius:22px;padding:2px;background:linear-gradient(150deg,var(--gold2),var(--gold) 40%,var(--gold-soft) 70%,var(--gold2));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
-.price-badge{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:var(--gold3);padding:6px 18px;border-radius:30px;font-size:.72rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-bottom:1.6rem}
-.price-row{display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:.3rem}
-.price-val{font-family:'Playfair Display',serif;font-size:4.2rem;font-weight:600;color:var(--ink);line-height:1}
-.price-val sup{font-size:1.6rem;vertical-align:super;color:var(--gold);font-weight:600}
-.price-period{font-size:.95rem;color:var(--ink3);font-weight:500}
-.price-tag{font-size:.9rem;color:var(--ink2);margin-bottom:2rem;font-weight:300}
-.price-list{list-style:none;text-align:left;margin-bottom:2.4rem;display:grid;gap:13px}
-.price-list li{display:flex;align-items:flex-start;gap:11px;font-size:.92rem;color:var(--ink);font-weight:400}
-.price-check{flex-shrink:0;width:21px;height:21px;border-radius:50%;background:var(--gold-soft);color:var(--gold);display:flex;align-items:center;justify-content:center;margin-top:1px}
-.price-note{font-size:.8rem;color:var(--ink3);margin-top:1rem;font-weight:300}
+.price-wrap{display:grid;grid-template-columns:1fr 1.06fr 1fr;gap:1.4rem;align-items:start}
+.price-card{position:relative;background:var(--white);border-radius:22px;padding:2.6rem 2.2rem;width:100%;text-align:center;box-shadow:0 12px 40px rgba(22,168,146,.10);border:1px solid var(--border)}
+.price-card.featured{padding:3rem 2.4rem;box-shadow:0 24px 70px rgba(22,168,146,.18);border:none;z-index:1}
+.price-card.featured::before{content:'';position:absolute;inset:0;border-radius:22px;padding:2px;background:linear-gradient(150deg,var(--gold2),var(--gold) 40%,var(--gold-soft) 70%,var(--gold2));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.price-card.dark{background:var(--dark);border-color:rgba(255,255,255,.09)}
+.price-badge{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:var(--gold3);padding:6px 18px;border-radius:30px;font-size:.72rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-bottom:1.4rem}
+.price-card.dark .price-badge{background:rgba(255,255,255,.08);color:var(--gold3);border:1px solid rgba(255,255,255,.14)}
+.price-row{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:.3rem;flex-wrap:wrap}
+.price-val{font-family:'Playfair Display',serif;font-size:3.8rem;font-weight:600;color:var(--ink);line-height:1}
+.price-card.dark .price-val{color:#fff}
+.price-val sup{font-size:1.5rem;vertical-align:super;color:var(--gold);font-weight:600}
+.price-old{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:500;color:var(--ink3);text-decoration:line-through;line-height:1;align-self:center}
+.price-card.dark .price-old{color:rgba(255,255,255,.35)}
+.price-save{display:inline-flex;align-items:center;background:rgba(193,54,40,.1);color:#c13628;border:1px solid rgba(193,54,40,.28);border-radius:30px;font-size:.68rem;font-weight:700;letter-spacing:.06em;padding:3px 11px;margin-left:4px;white-space:nowrap}
+.price-period{font-size:.9rem;color:var(--ink3);font-weight:500}
+.price-card.dark .price-period{color:rgba(255,255,255,.45)}
+.price-tag{font-size:.88rem;color:var(--ink2);margin-bottom:1.7rem;font-weight:300;margin-top:.3rem}
+.price-card.dark .price-tag{color:rgba(255,255,255,.5)}
+.price-list{list-style:none;text-align:left;margin-bottom:2rem;display:grid;gap:11px}
+.price-list li{display:flex;align-items:flex-start;gap:10px;font-size:.88rem;color:var(--ink);font-weight:400;line-height:1.5}
+.price-card.dark .price-list li{color:rgba(255,255,255,.75)}
+.price-check{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--gold-soft);color:var(--gold);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.price-card.dark .price-check{background:rgba(95,207,186,.14);color:var(--gold3)}
+.price-note{font-size:.78rem;color:var(--ink3);margin-top:.9rem;font-weight:300}
+.price-card.dark .price-note{color:rgba(255,255,255,.3)}
+.price-closing{font-size:.84rem;color:var(--ink2);line-height:1.6;font-style:italic;font-family:'Playfair Display',serif;border-top:1px solid var(--border);padding-top:1.1rem;margin-bottom:1.5rem;font-weight:500}
+.price-card.dark .price-closing{color:rgba(255,255,255,.55);border-color:rgba(255,255,255,.1)}
+@media(max-width:860px){.price-wrap{grid-template-columns:1fr;max-width:480px;margin:0 auto}.price-card.featured{padding:2.6rem 2.2rem}}
 
 /* ===== CTA DARK ===== */
 .cta-dark{background:var(--dark);color:#fff;text-align:center;padding:7rem 0;position:relative;overflow:hidden}
@@ -421,7 +437,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 <div class="annc" id="annc">
   <div class="annc-in">
     <span class="annc-dot"></span>
-    <span><b>Primera sesión diagnóstica gratuita</b> — sin compromiso, 45 min con un psicólogo especializado. <a onclick="sp('contact')">Reservar mi cupo →</a></span>
+    <span><b>Test psicológico del trader — gratuito y confidencial.</b> Descubre tu perfil en 5 minutos. <a onclick="sp('test-sel')">Hacer el test →</a></span>
     <button class="annc-x" onclick="document.getElementById('annc').style.display='none'" aria-label="Cerrar">✕</button>
   </div>
 </div>
@@ -562,7 +578,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <div class="meth-grid">
           <div class="meth-step reveal" data-d="1"><div class="meth-num">1</div><h4 class="meth-title">Test Gratuito</h4><p class="meth-desc">Completas el perfil psicológico en 4-5 minutos. Resultado inmediato y confidencial.</p></div>
           <div class="meth-step reveal" data-d="2"><div class="meth-num">2</div><h4 class="meth-title">Diagnóstico</h4><p class="meth-desc">Recibes tu perfil detallado con fortalezas, puntos ciegos y recomendaciones clínicas.</p></div>
-          <div class="meth-step reveal" data-d="3"><div class="meth-num">3</div><h4 class="meth-title">Sesión Gratuita</h4><p class="meth-desc">Una sesión diagnóstica sin costo para analizar tu caso específico con un psicólogo.</p></div>
+          <div class="meth-step reveal" data-d="3"><div class="meth-num">3</div><h4 class="meth-title">Sesión de Valoración</h4><p class="meth-desc">Agendas una sesión con un psicólogo para analizar tu caso y conocer el programa de acompañamiento.</p></div>
           <div class="meth-step reveal" data-d="4"><div class="meth-num">4</div><h4 class="meth-title">Asesoría</h4><p class="meth-desc">Programa personalizado con seguimiento semanal y acompañamiento operativo.</p></div>
         </div>
       </div>
@@ -582,17 +598,51 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 
   <section class="section" style="background:var(--bg2)">
     <div class="container">
-      <div class="sh reveal"><span class="eyebrow">Inversión</span><h2>Asesoría Personalizada</h2><p class="sh-sub">Un mes de trabajo intensivo con psicólogos especializados en trading.</p></div>
-      <div class="price-wrap reveal">
-        <div class="price-card">
-          <span class="price-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z"/></svg>Programa completo</span>
+      <div class="sh reveal"><span class="eyebrow">Planes</span><h2>Tres caminos para operar sin miedo, sin avaricia y sin ego</h2><p class="sh-sub">Da igual si operas en cuenta propia, ya estás fondeado o estás cansado de quebrar cuentas de fondeo: el problema casi nunca es la estrategia. Es tu psicología bajo presión.</p></div>
+      <div class="price-wrap">
+
+        <!-- ENTRADA -->
+        <div class="price-card reveal" data-d="1">
+          <span class="price-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Trader Consciente</span>
+          <div class="price-row"><span class="price-val"><sup>$</sup>79</span></div>
+          <div class="price-period">USD / mes</div>
+          <p class="price-tag">El punto de entrada. Psicología en comunidad.</p>
+          <ul class="price-list" id="price-list-a"></ul>
+          <p class="price-closing">En 30 días vas a identificar qué emoción está saboteando tu operativa — y vas a tener herramientas concretas para enfrentarla.</p>
+          <button class="btn-p" style="width:100%;justify-content:center" onclick="sp('contact')">Comenzar <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="price-note">Acceso mensual renovable. Cancela cuando quieras.</p>
+        </div>
+
+        <!-- DESTACADO -->
+        <div class="price-card featured reveal" data-d="2">
+          <span class="price-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z"/></svg>Asesoría Personalizada</span>
           <div class="price-row"><span class="price-val"><sup>$</sup>499</span></div>
           <div class="price-period">USD / mes</div>
-          <p class="price-tag">Acompañamiento clínico semanal para operar con disciplina.</p>
-          <ul class="price-list" id="price-list"></ul>
-          <button class="btn-p" style="width:100%;justify-content:center" onclick="sp('contact')">Agendar Sesión Diagnóstico Gratis <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-          <p class="price-note">La sesión de diagnóstico es gratuita y sin compromiso.</p>
+          <p class="price-tag">Acompañamiento clínico 1 a 1 para operar con disciplina.</p>
+          <ul class="price-list" id="price-list-b"></ul>
+          <p class="price-closing">Vas a tener un psicólogo especializado acompañándote sesión a sesión. Vas a entender exactamente qué te está bloqueando — y vas a tener un plan clínico para sostener el cambio.</p>
+          <button class="btn-p" style="width:100%;justify-content:center" onclick="sp('contact')">Agendar mi Sesión de Valoración <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="price-note">Cupos limitados cada mes para garantizar seguimiento personalizado.</p>
         </div>
+
+        <!-- PREMIUM -->
+        <div class="price-card dark reveal" data-d="3">
+          <span class="price-badge">Transformación Total — 12 Semanas</span>
+          <div class="price-row">
+            <span class="price-val"><sup>$</sup>1,990</span>
+            <span class="price-old">$2,497</span>
+          </div>
+          <div class="price-row" style="justify-content:center;margin-top:6px;margin-bottom:.3rem">
+            <span class="price-save">↓ Ahorra $507</span>
+          </div>
+          <div class="price-period">USD · pago único</div>
+          <p class="price-tag">USD · pago único. Programa intensivo de 12 semanas para una transformación real.</p>
+          <ul class="price-list" id="price-list-c"></ul>
+          <p class="price-closing">En 12 semanas vas a salir con una transformación documentada clínicamente: certificado, informe psicológico final, y un plan operativo personalizado para sostener el cambio para siempre.</p>
+          <button class="btn-p" style="width:100%;justify-content:center;background:var(--amber);box-shadow:0 6px 22px rgba(223,138,31,.32)" onclick="sp('contact')">Quiero transformarme <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="price-note">Precio especial de lanzamiento. Plazas muy limitadas.</p>
+        </div>
+
       </div>
     </div>
   </section>
@@ -615,7 +665,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 <div class="page" id="page-test-sel">
   <div class="ph"><div class="container"><span class="eyebrow">Evaluación Psicológica</span><h1 class="ph-title">Elige tu evaluación</h1><p class="ph-sub">Dos instrumentos clínicos gratuitos. Resultados inmediatos y confidenciales.</p></div></div>
   <section class="section-sm"><div class="container">
-    <div class="feat-grid">
+    <div class="feat-grid feat-grid-2">
       <div class="feat-card reveal" data-d="1" style="cursor:pointer;--accent:var(--gold);--accent-soft:var(--gold-soft);--accent-line:var(--gold-line)" onclick="startTest('A')">
         <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3a3 3 0 0 0-3 3 3 3 0 0 0-1.8 5.4A3 3 0 0 0 6 17a3 3 0 0 0 3.5 3V3Z"/><path d="M14.5 3a3 3 0 0 1 3 3 3 3 0 0 1 1.8 5.4A3 3 0 0 1 18 17a3 3 0 0 1-3.5 3V3Z"/></svg></div>
         <div style="font-size:.68rem;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:6px">Test A</div>
@@ -631,13 +681,6 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <p class="feat-desc">Disciplina operacional, gestión de riesgo, sesgos cognitivos en acción y rutina como trader.</p>
         <div style="display:flex;gap:14px;margin:1.1rem 0;flex-wrap:wrap;font-size:.78rem;color:var(--ink3);font-weight:500"><span>✦ 14 preguntas</span><span>✦ ~4 min</span><span>✦ 5 dimensiones</span></div>
         <button class="btn-p" style="width:100%;justify-content:center;background:var(--blue);box-shadow:0 6px 22px rgba(26,107,181,.26)">Iniciar Test B <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </div>
-      <div class="feat-card reveal" data-d="3" style="opacity:.6">
-        <div class="feat-icon" style="color:var(--ink3);background:var(--bg3);border-color:var(--border)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-        <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:6px">Próximamente</div>
-        <h3 class="feat-title">Biblioteca Gratuita</h3>
-        <p class="feat-desc">Libros digitales sobre psicología del trading para suscriptores.</p>
-        <div style="margin-top:1.1rem;padding:11px;background:var(--bg2);border-radius:var(--r-xs);font-size:.84rem;color:var(--ink3);text-align:center;font-weight:500">Disponible próximamente</div>
       </div>
     </div>
   </div></section>
@@ -684,26 +727,26 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 
 <!-- ===== CONTACT ===== -->
 <div class="page" id="page-contact">
-  <div class="ph"><div class="container"><span class="eyebrow">Contacto</span><h1 class="ph-title">Hablemos sobre tu trading</h1><p class="ph-sub">Primera sesión de diagnóstico gratuita. Sin compromiso.</p></div></div>
+  <div class="ph"><div class="container"><span class="eyebrow">Contacto</span><h1 class="ph-title">Hablemos sobre tu trading</h1><p class="ph-sub">Cuéntanos tu situación y conoce el programa de acompañamiento.</p></div></div>
   <section class="section-sm"><div class="container">
     <div class="cont-grid">
       <div class="reveal">
         <div class="cont-lead">¿Listo para transformar<br>tu mentalidad?</div>
-        <p class="cont-p">La primera sesión diagnóstica es completamente gratuita. En 45 minutos analizamos tu situación, identificamos los bloqueos exactos y diseñamos un plan específico para ti.</p>
+        <p class="cont-p">Cuéntanos sobre tu operativa y agenda una sesión de valoración con un psicólogo especializado. Analizamos tu situación, identificamos tus bloqueos y te explicamos cómo funciona el programa de acompañamiento.</p>
         <div class="cont-items">
           <div class="cont-item"><div class="cont-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="4"/><circle cx="12" cy="12" r="3.4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg></div><div><div class="cont-t">Instagram</div><div class="cont-v">@psicoatrading</div></div></div>
           <div class="cont-item"><div class="cont-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg></div><div><div class="cont-t">Cobertura</div><div class="cont-v">Colombia · México · Venezuela · España · LATAM</div></div></div>
-          <div class="cont-item"><div class="cont-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><div><div class="cont-t">Sesión diagnóstico</div><div class="cont-v">45 minutos · Gratuita · Online</div></div></div>
+          <div class="cont-item"><div class="cont-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><div><div class="cont-t">Modalidad</div><div class="cont-v">Sesiones online · Atención personalizada</div></div></div>
         </div>
       </div>
       <div class="cont-form-card reveal" data-d="1">
-        <h4>Solicitar sesión gratuita</h4>
+        <h4>Solicitar información</h4>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" placeholder="Tu nombre"></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="tu@email.com"></div>
         <div class="fg"><label class="fl">País</label><select class="fi"><option value="">Selecciona tu país</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div>
         <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
         <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
-        <button class="fsub" onclick="alert('Mensaje enviado. Te contactaremos en menos de 24 horas.')">Solicitar sesión gratuita <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button class="fsub" onclick="alert('Mensaje enviado. Te contactaremos en menos de 24 horas.')">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
   </div></section>
@@ -723,7 +766,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         </div>
       </div>
       <div><div class="ft-col-title">Navegación</div><ul class="ft-links"><li><button onclick="sp('home')">Inicio</button></li><li><button onclick="sp('test-sel')">Tests Gratuitos</button></li><li><button onclick="sp('blog')">Blog</button></li><li><button onclick="sp('contact')">Contacto</button></li></ul></div>
-      <div><div class="ft-col-title">Tests</div><ul class="ft-links"><li><button onclick="startTest('A')">Test A — Perfil Psicológico</button></li><li><button onclick="startTest('B')">Test B — Auditoría Plan</button></li><li><button onclick="sp('test-sel')">Libros Gratuitos</button></li></ul></div>
+      <div><div class="ft-col-title">Tests</div><ul class="ft-links"><li><button onclick="startTest('A')">Test A — Perfil Psicológico</button></li><li><button onclick="startTest('B')">Test B — Auditoría Plan</button></li></ul></div>
       <div><div class="ft-col-title">Legal</div><ul class="ft-links"><li><button>Privacidad</button></li><li><button>Términos de uso</button></li><li><button>Política de cookies</button></li></ul></div>
     </div>
     <div class="ft-bottom"><span class="ft-copy">© 2025 PsicoaTrading. Todos los derechos reservados.</span><span class="ft-copy">Grupo de Psicólogos · Colombia</span></div>
@@ -754,11 +797,41 @@ function sp(name){
   document.getElementById('marquee').innerHTML=one+one;
 })();
 
-/* ---- Pricing list ---- */
+/* ---- Pricing lists ---- */
 (function(){
-  const feats=['4 sesiones 1 a 1 semanales (60 min c/u)','Evaluación psicológica completa inicial','Seguimiento de operaciones en tiempo real','Diario de trading psicológico personalizado','Soporte WhatsApp entre sesiones','Plan de intervención individual','Biblioteca de recursos exclusivos'];
-  const chk='<span class="price-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>';
-  document.getElementById('price-list').innerHTML=feats.map(f=>'<li>'+chk+f+'</li>').join('');
+  const chk='<span class="price-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>';
+  const fill=(id,arr)=>{const el=document.getElementById(id);if(el)el.innerHTML=arr.map(f=>'<li>'+chk+f+'</li>').join('');};
+  fill('price-list-a',[
+    'Curso completo “Trader Consciente” (7 módulos clínicos)',
+    'Diario de Trading Psicológico digital integrado en la app',
+    '4 sesiones grupales en vivo al mes (vía Zoom)',
+    'Acceso a la librería de clases grabadas dentro de la app',
+    'Comunidad privada de soporte entre sesiones',
+    'Test psicológico inicial incluido',
+    'Seguimiento de progreso en tu panel personal'
+  ]);
+  fill('price-list-b',[
+    'Todo lo incluido en Trader Consciente',
+    '4 sesiones 1 a 1 semanales (60 min c/u) con psicólogo especializado',
+    'Evaluación psicológica clínica inicial completa',
+    'Seguimiento de operaciones en tiempo real con tu psicólogo',
+    'Diario de trading psicológico revisado en sesión',
+    'Soporte por WhatsApp entre sesiones (horario definido)',
+    'Plan de intervención individual personalizado',
+    'Biblioteca de recursos clínicos exclusivos'
+  ]);
+  fill('price-list-c',[
+    'Todo lo incluido en Asesoría Personalizada',
+    '12 semanas de acompañamiento intensivo estructurado',
+    'Sesiones semanales 1 a 1 (60 min) durante las 12 semanas completas',
+    'Batería psicológica clínica ampliada (test inicial, intermedio y final)',
+    'Revisión de operaciones en tiempo real con tu psicólogo',
+    'Plan psicológico Y operativo personalizado',
+    'Acceso de por vida a la librería de clases',
+    'Soporte prioritario por WhatsApp',
+    'Certificado de programa completado “Trader Consciente”',
+    'Informe clínico final con tu progreso documentado'
+  ]);
 })();
 
 /* ---- Reveal on scroll ---- */
@@ -849,7 +922,7 @@ function subUF(){
 }
 function renderQ(i){
   const t=ST.t,q=t.questions[i],s=ST.ans[i];
-  document.getElementById('tbody').innerHTML='<div class="q-card"><div class="q-dim-lbl">'+t.dims[q.dim].n+'</div><p class="q-text">'+q.text+'</p><div class="lk-labels"><span>Nunca · 1</span><span>7 · Siempre</span></div><div class="lk-row">'+[1,2,3,4,5,6,7].map(v=>'<button class="lkb'+(s===v?' sel':'')+'" onclick="selA('+i+','+v+')">'+v+'</button>').join('')+'</div></div><button class="btn-nxt" id="bnq" onclick="nxtQ()"'+(s===undefined?' disabled':'')+'>'+(i<t.questions.length-1?'Siguiente '+ICN.arrBtn:'Ver mi resultado '+ICN.arrBtn)+'</button>';
+  document.getElementById('tbody').innerHTML='<div class="q-card"><p class="q-text">'+q.text+'</p><div class="lk-labels"><span>Nunca · 1</span><span>7 · Siempre</span></div><div class="lk-row">'+[1,2,3,4,5,6,7].map(v=>'<button class="lkb'+(s===v?' sel':'')+'" onclick="selA('+i+','+v+')">'+v+'</button>').join('')+'</div></div><button class="btn-nxt" id="bnq" onclick="nxtQ()"'+(s===undefined?' disabled':'')+'>'+(i<t.questions.length-1?'Siguiente '+ICN.arrBtn:'Ver mi resultado '+ICN.arrBtn)+'</button>';
 }
 function selA(qi,v){ST.ans[qi]=v;document.querySelectorAll('.lkb').forEach((b,i)=>b.classList.toggle('sel',i+1===v));document.getElementById('bnq').disabled=false;}
 function nxtQ(){const t=ST.t;if(ST.qi<t.questions.length-1){ST.qi++;renderStep();window.scrollTo(0,0);}else{calcRes();}}
@@ -868,7 +941,7 @@ function showRes(r){
   const rs={good:'rs-good',moderate:'rs-moderate',warning:'rs-warning',danger:'rs-danger'}[rc];
   const al={
     danger:'<div class="alert-s as-danger">'+ICN.warn+'<div>Resultado con señales de alerta clínica. Recomendamos contactar a un psicólogo especializado antes de continuar operando.</div></div>',
-    warning:'<div class="alert-s as-warning">'+ICN.bolt+'<div>Tu perfil requiere atención. El acompañamiento psicológico puede prevenir pérdidas significativas. Agenda tu sesión diagnóstico gratuita.</div></div>',
+    warning:'<div class="alert-s as-warning">'+ICN.bolt+'<div>Tu perfil requiere atención. El acompañamiento psicológico puede prevenir pérdidas significativas. Agenda una sesión de valoración con nuestro equipo.</div></div>',
     moderate:'<div class="alert-s as-moderate">'+ICN.bulb+'<div>Tienes una base sólida. Con acompañamiento psicológico puedes acelerar tu consistencia operativa.</div></div>',
     good:'<div class="alert-s as-good">'+ICN.ok+'<div>Excelente perfil psicológico. El trabajo ahora es mantener y optimizar. Una sesión puede llevarte al siguiente nivel.</div></div>'
   }[rc];
@@ -890,7 +963,7 @@ function showRes(r){
     '<div class="rsec"><h4><span class="rsec-ic">'+ICN.star+'</span>Tus fortalezas</h4><ul class="rlist">'+li(p.str)+'</ul></div>'+
     '<div class="rsec"><h4><span class="rsec-ic">'+ICN.target+'</span>Áreas de trabajo prioritarias</h4><ul class="rlist">'+li(p.chl)+'</ul></div>'+
     '<div class="rsec"><h4><span class="rsec-ic">'+ICN.tool+'</span>Intervenciones recomendadas</h4><ul class="rlist">'+li(p.int)+'</ul></div>'+
-    '<div class="rcta"><h3>¿Listo para transformar tu trading?</h3><p>Trabaja con psicólogos especializados. Primera sesión diagnóstica completamente gratuita.</p><button class="btn-p" onclick="sp(\'contact\')">Agendar sesión gratuita '+ICN.arrBtn+'</button></div>';
+    '<div class="rcta"><h3>¿Listo para transformar tu trading?</h3><p>Trabaja con psicólogos especializados. Agenda una sesión de valoración y conoce el programa de acompañamiento.</p><button class="btn-p" onclick="sp(\'contact\')">Agendar sesión de valoración '+ICN.arrBtn+'</button></div>';
   requestAnimationFrame(()=>{setTimeout(()=>{document.querySelectorAll('#rcontent .db-fill').forEach(b=>b.style.width=b.dataset.w+'%');},120);});
 }
 
@@ -898,29 +971,3 @@ observeReveals();
 </script>
 </body>
 </html>
-<script>
-(function(){
-  var origShowRes = window.showRes;
-  window.showRes = function(r){
-    origShowRes(r);
-    try {
-      var prof = r.prof || {};
-      fetch('/api/test-results', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          name: (ST.ud && ST.ud.name) || '',
-          email: (ST.ud && ST.ud.email) || '',
-          country: (ST.ud && ST.ud.country) || '',
-          trading_experience: (ST.ud && ST.ud.exp) || '',
-          test_type: r.tid || 'A',
-          profile_name: prof.name || prof.title || 'Sin clasificar',
-          profile_code: prof.risk || 'unknown',
-          total_score: r.pct || r.sc || 0,
-          dimensions: []
-        })
-      }).catch(function(err){ console.error('Error enviando resultado:', err); });
-    } catch(e) { console.error('Error preparando datos:', e); }
-  };
-})();
-</script>
