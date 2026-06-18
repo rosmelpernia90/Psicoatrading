@@ -150,6 +150,19 @@ class ClinicalNote(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Client(Base):
+    __tablename__ = "clients"
+    id            = Column(Integer, primary_key=True, index=True)
+    email         = Column(String(200), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    name          = Column(String(200), nullable=False)
+    country       = Column(String(100))
+    role          = Column(String(20), nullable=False, default="cliente")
+    is_active     = Column(Boolean, default=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
@@ -177,6 +190,13 @@ class ContactSubmit(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    country: Optional[str] = None
 
 
 class ClinicalNoteCreate(BaseModel):
@@ -432,16 +452,54 @@ def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
 # ============================================
 @app.post("/api/auth/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
+    # 1. Psicólogos y admins
     psych = db.query(Psychologist).filter(Psychologist.email == data.email).first()
-    if not psych or not pwd_context.verify(data.password, psych.password_hash):
-        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-    if not psych.is_active:
-        raise HTTPException(status_code=403, detail="Cuenta desactivada")
-    token = create_token({"sub": psych.email, "name": psych.name, "role": psych.role})
+    if psych and pwd_context.verify(data.password, psych.password_hash):
+        if not psych.is_active:
+            raise HTTPException(status_code=403, detail="Cuenta desactivada")
+        token = create_token({"sub": psych.email, "name": psych.name, "role": psych.role})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {"id": psych.id, "name": psych.name, "email": psych.email, "role": psych.role}
+        }
+
+    # 2. Clientes
+    client = db.query(Client).filter(Client.email == data.email).first()
+    if client and pwd_context.verify(data.password, client.password_hash):
+        if not client.is_active:
+            raise HTTPException(status_code=403, detail="Cuenta desactivada")
+        token = create_token({"sub": client.email, "name": client.name, "role": client.role})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {"id": client.id, "name": client.name, "email": client.email, "role": client.role}
+        }
+
+    raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+
+@app.post("/api/auth/register", status_code=201)
+def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    if db.query(Psychologist).filter(Psychologist.email == data.email).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    if db.query(Client).filter(Client.email == data.email).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    client = Client(
+        email=data.email,
+        password_hash=pwd_context.hash(data.password),
+        name=data.name,
+        country=data.country,
+        role="cliente"
+    )
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+    token = create_token({"sub": client.email, "name": client.name, "role": client.role})
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {"id": psych.id, "name": psych.name, "email": psych.email, "role": psych.role}
+        "user": {"id": client.id, "name": client.name, "email": client.email, "role": client.role}
     }
 
 
