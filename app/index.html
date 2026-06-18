@@ -188,6 +188,7 @@ textarea.form-input{min-height:90px;resize:vertical}
       <button class="sb-item" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
       <button class="sb-item" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
       <button class="sb-item" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
+      <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
     </nav>
     <div class="sb-footer">
       <div class="sb-user" id="sb-user"></div>
@@ -254,7 +255,76 @@ textarea.form-input{min-height:90px;resize:vertical}
       <h1 style="margin-bottom:1rem">Sesiones</h1>
       <div class="card"><p style="color:var(--ink3)">Las sesiones aparecen aquí cuando los pacientes las agendan desde la web o cuando un psicólogo las crea desde el detalle del paciente.</p></div>
     </div>
+
+    <!-- USUARIOS (solo admin) -->
+    <div class="view-panel" id="view-users">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem">
+        <div>
+          <h1>Gestión de Usuarios</h1>
+          <div style="font-size:.85rem;color:var(--ink3)" id="users-count">Cargando…</div>
+        </div>
+        <button class="btn-gold" onclick="openUserModal()">+ Nuevo Usuario</button>
+      </div>
+      <div class="search-bar">
+        <input class="search-input" id="user-search" placeholder="Buscar por nombre o email..." oninput="filterUsers()">
+        <button class="btn-gold" onclick="loadUsers()">Actualizar</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
+
+<!-- ===== MODAL USUARIO ===== -->
+<div id="user-modal" style="display:none;position:fixed;inset:0;background:rgba(44,40,32,.45);z-index:200;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 id="user-modal-title" style="font-size:1.3rem">Nuevo Usuario</h2>
+      <button onclick="closeUserModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-input" id="user-name" placeholder="Nombre completo">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="user-email" type="email" placeholder="usuario@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="user-pass-label">Contraseña</label>
+      <input class="form-input" id="user-pass" type="password" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rol</label>
+      <select class="form-input" id="user-role" onchange="onRoleChange()">
+        <option value="cliente">Cliente</option>
+        <option value="psychologist">Psicólogo</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="form-group" id="user-country-group">
+      <label class="form-label">País</label>
+      <input class="form-input" id="user-country" placeholder="País (opcional)">
+    </div>
+    <div class="form-group" id="user-active-group" style="display:none">
+      <label class="form-label">Estado</label>
+      <select class="form-input" id="user-active">
+        <option value="true">Activo</option>
+        <option value="false">Inactivo</option>
+      </select>
+    </div>
+    <div class="login-err" id="user-modal-err" style="text-align:left"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem">
+      <button class="btn-outline" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn-gold" id="user-save-btn" onclick="saveUser()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== PANEL CLIENTE (placeholder) ===== -->
@@ -345,6 +415,8 @@ function enterApp() {
     // Panel clínico existente — sin cambios
     document.getElementById('app-view').classList.add('active');
     document.getElementById('app-cliente').style.display = 'none';
+    // El módulo de Usuarios solo es visible para admin
+    document.getElementById('nav-users').style.display = (role === 'admin') ? '' : 'none';
     showView('dashboard');
   } else {
     // Panel placeholder para clientes
@@ -370,6 +442,7 @@ function showView(name) {
   if (name === 'dashboard') loadDashboard();
   if (name === 'leads') loadLeads();
   if (name === 'emails') loadEmails();
+  if (name === 'users') loadUsers();
 }
 
 // ============================================================
@@ -572,6 +645,130 @@ async function loadEmails() {
     <td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td>
     <td style="color:var(--ink3)">${e.sent_at ? new Date(e.sent_at).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
+}
+
+// ============================================================
+// USUARIOS (admin)
+// ============================================================
+let allUsers = [];
+let editingUser = null; // { user_type, id } o null si es nuevo
+
+async function loadUsers() {
+  const data = await api('/api/admin/users');
+  const tbody = document.getElementById('users-tbody');
+  if (!data) { tbody.innerHTML = '<tr><td colspan="6" class="loading">No se pudo conectar al servidor</td></tr>'; return; }
+  allUsers = data.users || [];
+  document.getElementById('users-count').textContent = (data.total || 0) + ' usuarios registrados';
+  renderUsers(allUsers);
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  const filtered = allUsers.filter(u =>
+    (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+  );
+  renderUsers(filtered);
+}
+
+function renderUsers(users) {
+  const rolePill = { admin: 'pill-gold', psychologist: 'pill-blue', cliente: 'pill-green' };
+  const roleLabel = { admin: 'Administrador', psychologist: 'Psicólogo', cliente: 'Cliente' };
+  const typeLabel = { psychologist: 'Equipo clínico', client: 'Cliente' };
+  const tbody = document.getElementById('users-tbody');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay usuarios.</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => `<tr>
+    <td class="td-name" style="cursor:default">${u.name || '—'}</td>
+    <td>${u.email}</td>
+    <td><span class="pill ${rolePill[u.role] || 'pill-blue'}">${roleLabel[u.role] || u.role}</span></td>
+    <td style="color:var(--ink3)">${typeLabel[u.user_type] || u.user_type}</td>
+    <td><span class="pill ${u.is_active ? 'pill-green' : 'pill-red'}">${u.is_active ? 'Activo' : 'Inactivo'}</span></td>
+    <td><button class="btn-outline" style="padding:5px 12px;font-size:.8rem" onclick='openUserModal(${JSON.stringify(u)})'>Editar</button></td>
+  </tr>`).join('');
+}
+
+function onRoleChange() {
+  const role = document.getElementById('user-role').value;
+  document.getElementById('user-country-group').style.display = (role === 'cliente') ? '' : 'none';
+}
+
+function openUserModal(user) {
+  const err = document.getElementById('user-modal-err');
+  err.textContent = '';
+  const roleSelect = document.getElementById('user-role');
+  const activeGroup = document.getElementById('user-active-group');
+  const passLabel = document.getElementById('user-pass-label');
+
+  if (user && user.id) {
+    // Editar
+    editingUser = { user_type: user.user_type, id: user.id };
+    document.getElementById('user-modal-title').textContent = 'Editar Usuario';
+    document.getElementById('user-name').value = user.name || '';
+    document.getElementById('user-email').value = user.email || '';
+    document.getElementById('user-pass').value = '';
+    document.getElementById('user-country').value = user.country || '';
+    document.getElementById('user-active').value = user.is_active ? 'true' : 'false';
+    roleSelect.value = user.role;
+    // No se permite cambiar entre tabla psychologist <-> client
+    roleSelect.disabled = (user.user_type === 'client');
+    activeGroup.style.display = '';
+    passLabel.textContent = 'Contraseña (dejar vacío para no cambiar)';
+  } else {
+    // Nuevo
+    editingUser = null;
+    document.getElementById('user-modal-title').textContent = 'Nuevo Usuario';
+    document.getElementById('user-name').value = '';
+    document.getElementById('user-email').value = '';
+    document.getElementById('user-pass').value = '';
+    document.getElementById('user-country').value = '';
+    roleSelect.value = 'cliente';
+    roleSelect.disabled = false;
+    activeGroup.style.display = 'none';
+    passLabel.textContent = 'Contraseña';
+  }
+  onRoleChange();
+  document.getElementById('user-modal').style.display = 'flex';
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal').style.display = 'none';
+}
+
+async function saveUser() {
+  const err = document.getElementById('user-modal-err');
+  err.textContent = '';
+  const name = document.getElementById('user-name').value.trim();
+  const email = document.getElementById('user-email').value.trim();
+  const pass = document.getElementById('user-pass').value;
+  const role = document.getElementById('user-role').value;
+  const country = document.getElementById('user-country').value.trim();
+  const saveBtn = document.getElementById('user-save-btn');
+
+  if (!name || !email) { err.textContent = 'Nombre y email son obligatorios'; return; }
+  if (!editingUser && !pass) { err.textContent = 'La contraseña es obligatoria para usuarios nuevos'; return; }
+
+  saveBtn.disabled = true;
+  let res;
+  if (editingUser) {
+    const body = { name, email, is_active: document.getElementById('user-active').value === 'true' };
+    if (pass) body.password = pass;
+    if (!document.getElementById('user-role').disabled) body.role = role;
+    if (role === 'cliente') body.country = country;
+    res = await api(`/api/admin/users/${editingUser.user_type}/${editingUser.id}`, {
+      method: 'PUT', body: JSON.stringify(body)
+    });
+  } else {
+    const body = { name, email, password: pass, role };
+    if (role === 'cliente') body.country = country;
+    res = await api('/api/admin/users', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  saveBtn.disabled = false;
+  if (res && (res.success || res.id)) {
+    closeUserModal();
+    loadUsers();
+  } else {
+    err.textContent = 'No se pudo guardar. Verifica los datos (¿email duplicado?).';
+  }
 }
 </script>
 </body>

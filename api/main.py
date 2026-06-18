@@ -199,6 +199,23 @@ class RegisterRequest(BaseModel):
     country: Optional[str] = None
 
 
+class AdminUserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    role: str  # admin | psychologist | cliente
+    country: Optional[str] = None
+
+
+class AdminUserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None  # opcional: solo si se quiere cambiar
+    country: Optional[str] = None
+
+
 class ClinicalNoteCreate(BaseModel):
     lead_id: int
     session_id: Optional[int] = None
@@ -691,6 +708,135 @@ def get_email_queue(
             for e in emails
         ]
     }
+
+
+# ============================================
+# ADMIN - GESTIÓN DE USUARIOS
+# ============================================
+def require_admin(payload: dict = Depends(verify_token)):
+    """Guard: solo permite acceso a usuarios con rol admin."""
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acceso solo para administradores")
+    return payload
+
+
+VALID_ROLES = {"admin", "psychologist", "cliente"}
+
+
+@app.get("/api/admin/users")
+def admin_list_users(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    psychs = db.query(Psychologist).all()
+    clients = db.query(Client).all()
+
+    users = []
+    for p in psychs:
+        users.append({
+            "id": p.id,
+            "user_type": "psychologist",
+            "name": p.name,
+            "email": p.email,
+            "role": p.role,
+            "is_active": bool(p.is_active),
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        })
+    for c in clients:
+        users.append({
+            "id": c.id,
+            "user_type": "client",
+            "name": c.name,
+            "email": c.email,
+            "role": c.role,
+            "is_active": bool(c.is_active),
+            "country": c.country,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        })
+
+    return {"total": len(users), "users": users}
+
+
+@app.post("/api/admin/users", status_code=201)
+def admin_create_user(data: AdminUserCreate, payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    if data.role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(VALID_ROLES)}")
+
+    # Email único en ambas tablas
+    if db.query(Psychologist).filter(Psychologist.email == data.email).first() or \
+       db.query(Client).filter(Client.email == data.email).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+    if data.role in ("admin", "psychologist"):
+        user = Psychologist(
+            name=data.name,
+            email=data.email,
+            password_hash=pwd_context.hash(data.password),
+            role=data.role,
+            is_active=True,
+        )
+        user_type = "psychologist"
+    else:  # cliente
+        user = Client(
+            name=data.name,
+            email=data.email,
+            password_hash=pwd_context.hash(data.password),
+            country=data.country,
+            role="cliente",
+            is_active=True,
+        )
+        user_type = "client"
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"success": True, "id": user.id, "user_type": user_type}
+
+
+@app.put("/api/admin/users/{user_type}/{user_id}")
+def admin_update_user(
+    user_type: str,
+    user_id: int,
+    data: AdminUserUpdate,
+    payload: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if user_type == "psychologist":
+        user = db.query(Psychologist).filter(Psychologist.id == user_id).first()
+    elif user_type == "client":
+        user = db.query(Client).filter(Client.id == user_id).first()
+    else:
+        raise HTTPException(status_code=400, detail="Tipo de usuario inválido")
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Validar rol si se envía
+    if data.role is not None:
+        if data.role not in VALID_ROLES:
+            raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(VALID_ROLES)}")
+        # Restricción: no cambiar tipo de tabla (un psicólogo no puede pasar a cliente y viceversa)
+        if user_type == "psychologist" and data.role == "cliente":
+            raise HTTPException(status_code=400, detail="Un psicólogo/admin no puede cambiar a rol cliente")
+        if user_type == "client" and data.role in ("admin", "psychologist"):
+            raise HTTPException(status_code=400, detail="Un cliente no puede cambiar a rol admin/psychologist")
+        user.role = data.role
+
+    # Email único si cambia
+    if data.email is not None and data.email != user.email:
+        if db.query(Psychologist).filter(Psychologist.email == data.email).first() or \
+           db.query(Client).filter(Client.email == data.email).first():
+            raise HTTPException(status_code=400, detail="El email ya está registrado")
+        user.email = data.email
+
+    if data.name is not None:
+        user.name = data.name
+    if data.is_active is not None:
+        user.is_active = data.is_active
+    if data.password:
+        user.password_hash = pwd_context.hash(data.password)
+    if data.country is not None and user_type == "client":
+        user.country = data.country
+
+    db.commit()
+    return {"success": True}
 
 
 # ============================================
