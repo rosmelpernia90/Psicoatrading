@@ -348,8 +348,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://psicoatrading.online",
+        "https://app.psicoatrading.online",
         "https://psicoatrading.com",
+        "https://app.psicoatrading.com",
         "http://psicoatrading.online",
+        "http://app.psicoatrading.online",
         "http://psicoatrading.com",
         "http://localhost:3000",
         "http://localhost:5173",
