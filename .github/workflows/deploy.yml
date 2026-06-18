@@ -17,7 +17,7 @@ jobs:
           script: |
             cd /root/psicoatrading-repo
             git pull origin main
-            cp web/index.html /home/psicoatrading.online/public_html/index.html
+            cp index.html /home/psicoatrading.online/public_html/index.html
             cp app/index.html /home/psicoatrading.online/public_html/app/index.html
             cp api/main.py /var/www/api/main.py
             cp api/schema.sql /var/www/api/schema.sql
