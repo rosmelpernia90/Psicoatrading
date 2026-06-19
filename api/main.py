@@ -163,6 +163,45 @@ class Client(Base):
     updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class CourseModule(Base):
+    __tablename__ = "courses_modules"
+    id            = Column(Integer, primary_key=True, index=True)
+    module_number = Column(Integer, nullable=False, unique=True)  # 1-7
+    title         = Column(String(200), nullable=False)
+    content_md    = Column(Text)
+    is_sequential = Column(Boolean, default=True)  # True: 1,2,3,7 | False: 4,5,6
+    unlocks_diary_question_id = Column(Integer, nullable=True)  # FK lógico a diario (sin constraint por ahora)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    quizzes       = relationship("CourseQuiz", backref="module", order_by="CourseQuiz.question_order")
+
+
+class CourseQuiz(Base):
+    __tablename__ = "courses_quizzes"
+    id             = Column(Integer, primary_key=True, index=True)
+    module_id      = Column(Integer, ForeignKey("courses_modules.id"), nullable=False)
+    question       = Column(Text, nullable=False)
+    option_a       = Column(String(500))
+    option_b       = Column(String(500))
+    option_c       = Column(String(500))
+    option_d       = Column(String(500))
+    correct_option = Column(String(1), nullable=False)  # 'a','b','c','d'
+    question_order = Column(Integer, default=1)
+
+
+class CourseProgress(Base):
+    __tablename__ = "courses_progress"
+    id           = Column(Integer, primary_key=True, index=True)
+    client_id    = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    module_id    = Column(Integer, ForeignKey("courses_modules.id"), nullable=False)
+    status       = Column(String(20), default="locked")  # locked|available|in_progress|completed
+    quiz_score   = Column(Integer, nullable=True)
+    attempts     = Column(Integer, default=0)
+    completed_at = Column(DateTime, nullable=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
@@ -214,6 +253,15 @@ class AdminUserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = None  # opcional: solo si se quiere cambiar
     country: Optional[str] = None
+
+
+class QuizAnswer(BaseModel):
+    question_id: int
+    answer: str  # 'a','b','c','d'
+
+
+class CompleteModuleRequest(BaseModel):
+    quiz_answers: List[QuizAnswer]
 
 
 class ClinicalNoteCreate(BaseModel):
@@ -837,6 +885,243 @@ def admin_update_user(
 
     db.commit()
     return {"success": True}
+
+
+# ============================================
+# CURSO "TRADER CONSCIENTE"
+# ============================================
+MAX_QUIZ_ATTEMPTS = 3
+
+
+def get_current_client(payload: dict, db: Session) -> Client:
+    """Obtiene el cliente autenticado a partir del token (rol cliente)."""
+    if payload.get("role") != "cliente":
+        raise HTTPException(status_code=403, detail="Acceso solo para clientes")
+    client = db.query(Client).filter(Client.email == payload["sub"]).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return client
+
+
+def _is_module_available(module_number: int, completed: set) -> bool:
+    """Reglas de progresión MIXTA del curso."""
+    if module_number == 1:
+        return True
+    if module_number == 2:
+        return 1 in completed
+    if module_number == 3:
+        return 2 in completed
+    if module_number in (4, 5, 6):
+        return 3 in completed          # libres tras completar el 3
+    if module_number == 7:
+        return all(m in completed for m in (1, 2, 3, 4, 5, 6))
+    return False
+
+
+def _pass_mark(module_number: int) -> tuple:
+    """Devuelve (correctas_necesarias, total) — 80%."""
+    total = 10 if module_number == 7 else 5
+    needed = 8 if module_number == 7 else 4
+    return needed, total
+
+
+@app.get("/api/course/modules")
+def course_list_modules(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    modules = db.query(CourseModule).order_by(CourseModule.module_number).all()
+    progress_rows = db.query(CourseProgress).filter(CourseProgress.client_id == client.id).all()
+    prog_by_module = {p.module_id: p for p in progress_rows}
+    completed = {
+        m.module_number for m in modules
+        if prog_by_module.get(m.id) and prog_by_module[m.id].status == "completed"
+    }
+
+    result = []
+    for m in modules:
+        p = prog_by_module.get(m.id)
+        if p and p.status == "completed":
+            status = "completed"
+        elif _is_module_available(m.module_number, completed):
+            status = "in_progress" if (p and p.status == "in_progress") else "available"
+        else:
+            status = "locked"
+        result.append({
+            "id": m.id,
+            "module_number": m.module_number,
+            "title": m.title,
+            "is_sequential": bool(m.is_sequential),
+            "status": status,
+            "quiz_score": p.quiz_score if p else None,
+            "attempts": p.attempts if p else 0,
+            "completed_at": p.completed_at.isoformat() if (p and p.completed_at) else None,
+        })
+    return {"modules": result}
+
+
+@app.get("/api/course/modules/{module_id}")
+def course_get_module(module_id: int, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    module = db.query(CourseModule).filter(CourseModule.id == module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+
+    # Calcular módulos completados para validar acceso
+    progress_rows = db.query(CourseProgress).filter(CourseProgress.client_id == client.id).all()
+    prog_by_module = {p.module_id: p for p in progress_rows}
+    all_modules = db.query(CourseModule).all()
+    completed = {
+        mm.module_number for mm in all_modules
+        if prog_by_module.get(mm.id) and prog_by_module[mm.id].status == "completed"
+    }
+
+    p = prog_by_module.get(module.id)
+    is_completed = p and p.status == "completed"
+    if not (is_completed or _is_module_available(module.module_number, completed)):
+        raise HTTPException(status_code=403, detail="Este módulo está bloqueado")
+
+    # Marcar in_progress si está disponible y aún no se completó
+    if not is_completed:
+        if not p:
+            p = CourseProgress(client_id=client.id, module_id=module.id, status="in_progress")
+            db.add(p)
+        elif p.status != "completed":
+            p.status = "in_progress"
+        db.commit()
+
+    quizzes = db.query(CourseQuiz).filter(CourseQuiz.module_id == module.id)\
+        .order_by(CourseQuiz.question_order).all()
+
+    return {
+        "id": module.id,
+        "module_number": module.module_number,
+        "title": module.title,
+        "content_md": module.content_md,
+        "is_sequential": bool(module.is_sequential),
+        "quiz": [
+            {
+                "id": q.id, "question": q.question, "order": q.question_order,
+                "option_a": q.option_a, "option_b": q.option_b,
+                "option_c": q.option_c, "option_d": q.option_d,
+                # correct_option NO se envía al cliente
+            }
+            for q in quizzes
+        ],
+        "status": "completed" if is_completed else "in_progress",
+        "attempts": p.attempts if p else 0,
+        "max_attempts": MAX_QUIZ_ATTEMPTS,
+    }
+
+
+@app.post("/api/course/modules/{module_id}/complete")
+def course_complete_module(module_id: int, data: CompleteModuleRequest,
+                           payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    module = db.query(CourseModule).filter(CourseModule.id == module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+
+    # Validar acceso
+    progress_rows = db.query(CourseProgress).filter(CourseProgress.client_id == client.id).all()
+    prog_by_module = {p.module_id: p for p in progress_rows}
+    all_modules = db.query(CourseModule).all()
+    completed_before = {
+        mm.module_number for mm in all_modules
+        if prog_by_module.get(mm.id) and prog_by_module[mm.id].status == "completed"
+    }
+    p = prog_by_module.get(module.id)
+
+    if p and p.status == "completed":
+        return {"passed": True, "score": p.quiz_score, "already_completed": True, "next_unlocked": []}
+
+    if not _is_module_available(module.module_number, completed_before):
+        raise HTTPException(status_code=403, detail="Este módulo está bloqueado")
+
+    if p and p.attempts >= MAX_QUIZ_ATTEMPTS:
+        raise HTTPException(status_code=403,
+                            detail="Alcanzaste el límite de 3 intentos. Contacta a tu psicólogo.")
+
+    # Calcular score
+    quizzes = db.query(CourseQuiz).filter(CourseQuiz.module_id == module.id).all()
+    correct_by_id = {q.id: (q.correct_option or "").lower() for q in quizzes}
+    answers_by_id = {a.question_id: (a.answer or "").lower() for a in data.quiz_answers}
+    score = sum(1 for qid, correct in correct_by_id.items() if answers_by_id.get(qid) == correct)
+
+    needed, total = _pass_mark(module.module_number)
+    passed = score >= needed
+
+    # Upsert progreso
+    if not p:
+        p = CourseProgress(client_id=client.id, module_id=module.id, status="in_progress", attempts=0)
+        db.add(p)
+        db.flush()
+    p.attempts = (p.attempts or 0) + 1
+    p.quiz_score = score
+
+    next_unlocked = []
+    diary_question_id = None
+    if passed:
+        p.status = "completed"
+        p.completed_at = datetime.utcnow()
+        diary_question_id = module.unlocks_diary_question_id
+        # recomputar desbloqueos
+        completed_after = set(completed_before) | {module.module_number}
+        available_before = {m.module_number for m in all_modules
+                            if _is_module_available(m.module_number, completed_before)}
+        for m in all_modules:
+            if m.module_number not in available_before and \
+               _is_module_available(m.module_number, completed_after):
+                next_unlocked.append(m.module_number)
+    else:
+        p.status = "in_progress"
+
+    db.commit()
+
+    return {
+        "passed": passed,
+        "score": score,
+        "total": total,
+        "needed": needed,
+        "attempts": p.attempts,
+        "attempts_left": max(0, MAX_QUIZ_ATTEMPTS - p.attempts),
+        "next_unlocked": sorted(next_unlocked),
+        "diary_question_id": diary_question_id,
+    }
+
+
+@app.get("/api/course/progress")
+def course_progress_overview(client_id: Optional[int] = None,
+                             payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    # Solo psicólogos/admins
+    if payload.get("role") not in ("admin", "psychologist"):
+        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
+
+    clients_q = db.query(Client)
+    if client_id is not None:
+        clients_q = clients_q.filter(Client.id == client_id)
+    clients = clients_q.all()
+
+    total_modules = db.query(func.count(CourseModule.id)).scalar() or 0
+    result = []
+    for c in clients:
+        rows = db.query(CourseProgress).filter(CourseProgress.client_id == c.id).all()
+        completed = [r for r in rows if r.status == "completed"]
+        last_activity = None
+        if rows:
+            dates = [r.updated_at for r in rows if r.updated_at]
+            last_activity = max(dates).isoformat() if dates else None
+        result.append({
+            "client_id": c.id,
+            "name": c.name,
+            "email": c.email,
+            "modules_completed": len(completed),
+            "total_modules": total_modules,
+            "quiz_scores": [
+                {"module_id": r.module_id, "score": r.quiz_score, "attempts": r.attempts}
+                for r in rows if r.quiz_score is not None
+            ],
+            "last_activity": last_activity,
+        })
+    return {"progress": result}
 
 
 # ============================================

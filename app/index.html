@@ -188,6 +188,7 @@ textarea.form-input{min-height:90px;resize:vertical}
       <button class="sb-item" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
       <button class="sb-item" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
       <button class="sb-item" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
+      <button class="sb-item" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
       <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
     </nav>
     <div class="sb-footer">
@@ -278,6 +279,19 @@ textarea.form-input{min-height:90px;resize:vertical}
         </div>
       </div>
     </div>
+
+    <!-- PROGRESO DEL CLIENTE (curso) -->
+    <div class="view-panel" id="view-progress">
+      <h1 style="margin-bottom:1rem">Progreso del cliente — Curso</h1>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Cliente</th><th>Email</th><th>Módulos completados</th><th>Quizzes (score)</th><th>Última actividad</th></tr></thead>
+            <tbody id="progress-tbody"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -327,18 +341,35 @@ textarea.form-input{min-height:90px;resize:vertical}
   </div>
 </div>
 
-<!-- ===== PANEL CLIENTE (placeholder) ===== -->
-<div id="app-cliente" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(135deg,#f7f6f3 0%,#f6ead0 100%)">
-  <div style="background:#fff;border-radius:16px;padding:2.5rem 3rem;max-width:480px;width:100%;box-shadow:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);text-align:center">
-    <div style="font-size:2.5rem;margin-bottom:1rem">🧠</div>
-    <h2 style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#2c2820;margin-bottom:.5rem">Bienvenido al Portal del Cliente</h2>
-    <p style="color:#6b6560;font-size:.95rem;line-height:1.6;margin-bottom:1.5rem">
-      Próximamente: <strong>Curso, Diario y Recursos</strong>.<br>
-      Tu acceso estará disponible muy pronto.
-    </p>
-    <p style="font-size:.85rem;color:#9c9690;margin-bottom:1.5rem">Conectado como <strong id="cliente-name"></strong></p>
-    <button onclick="doLogout()" style="padding:10px 24px;background:none;border:1px solid #e0ddd8;border-radius:8px;font-family:inherit;font-size:.88rem;color:#6b6560;cursor:pointer">Cerrar sesión</button>
-  </div>
+<!-- ===== PORTAL CLIENTE ===== -->
+<div id="app-cliente" style="display:none;min-height:100vh;flex-direction:column;background:var(--bg)">
+  <header style="background:var(--white);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;color:var(--ink)">PsicoaTrading</div>
+      <div style="font-size:.65rem;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700">Portal del Cliente</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:.85rem;font-weight:600;color:var(--ink)" id="cliente-name"></div>
+      <button onclick="doLogout()" style="font-size:.8rem;color:var(--red);background:none;border:none;padding:0;font-weight:500;cursor:pointer">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main style="max-width:1040px;margin:0 auto;padding:2rem;width:100%">
+    <!-- MOSAICO DE MÓDULOS -->
+    <div id="cli-view-course">
+      <h1 style="margin-bottom:.4rem">Curso Trader Consciente</h1>
+      <p style="color:var(--ink3);font-size:.9rem;margin-bottom:1.5rem">Completa los módulos en orden. Aprueba el quiz (80%) para avanzar.</p>
+      <div id="course-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+        <div class="loading">Cargando módulos...</div>
+      </div>
+    </div>
+
+    <!-- DETALLE DE MÓDULO -->
+    <div id="cli-view-module" style="display:none">
+      <button class="btn-outline" style="margin-bottom:1rem" onclick="backToCourse()">← Volver al curso</button>
+      <div id="mod-detail"><div class="loading">Cargando...</div></div>
+    </div>
+  </main>
 </div>
 
 <script>
@@ -419,10 +450,12 @@ function enterApp() {
     document.getElementById('nav-users').style.display = (role === 'admin') ? '' : 'none';
     showView('dashboard');
   } else {
-    // Panel placeholder para clientes
+    // Portal del cliente
     document.getElementById('app-view').classList.remove('active');
     document.getElementById('app-cliente').style.display = 'flex';
     document.getElementById('cliente-name').textContent = USER?.name || USER?.email || '';
+    backToCourse();
+    loadCourse();
   }
 }
 
@@ -443,6 +476,7 @@ function showView(name) {
   if (name === 'leads') loadLeads();
   if (name === 'emails') loadEmails();
   if (name === 'users') loadUsers();
+  if (name === 'progress') loadCourseProgress();
 }
 
 // ============================================================
@@ -769,6 +803,159 @@ async function saveUser() {
   } else {
     err.textContent = 'No se pudo guardar. Verifica los datos (¿email duplicado?).';
   }
+}
+
+// ============================================================
+// CURSO — CLIENTE
+// ============================================================
+function mdToHtml(md) {
+  if (!md) return '<p style="color:var(--ink3)">El contenido de este módulo estará disponible pronto.</p>';
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>');
+  const lines = md.split(/\r?\n/);
+  let html = '', inList = false, para = [];
+  const flushPara = () => { if (para.length) { html += '<p>' + para.map(inline).join('<br>') + '</p>'; para = []; } };
+  const flushList = () => { if (inList) { html += '</ul>'; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/,'');
+    if (/^\s*$/.test(line)) { flushPara(); flushList(); continue; }
+    const mH = line.match(/^(#{1,3})\s+(.*)$/);
+    if (mH) { flushPara(); flushList(); const lvl = mH[1].length; html += `<h${lvl}>${inline(mH[2])}</h${lvl}>`; continue; }
+    const mL = line.match(/^\s*[-*]\s+(.*)$/);
+    if (mL) { flushPara(); if (!inList) { html += '<ul>'; inList = true; } html += '<li>' + inline(mL[1]) + '</li>'; continue; }
+    if (inList) flushList();
+    para.push(line);
+  }
+  flushPara(); flushList();
+  return html;
+}
+
+function backToCourse() {
+  document.getElementById('cli-view-course').style.display = '';
+  document.getElementById('cli-view-module').style.display = 'none';
+}
+
+async function loadCourse() {
+  const grid = document.getElementById('course-grid');
+  const data = await api('/api/course/modules');
+  if (!data) { grid.innerHTML = '<div class="loading">No se pudo cargar el curso</div>'; return; }
+  const statusMeta = {
+    locked:      { icon:'🔒', label:'Bloqueado',   color:'var(--ink3)',  bg:'var(--bg2)' },
+    available:   { icon:'▶',  label:'Disponible',   color:'var(--gold)',  bg:'var(--gold-soft)' },
+    in_progress: { icon:'…',  label:'En progreso',  color:'var(--blue)',  bg:'var(--blue-bg)' },
+    completed:   { icon:'✓',  label:'Completado',    color:'var(--green)', bg:'var(--green-bg)' },
+  };
+  grid.innerHTML = (data.modules || []).map(m => {
+    const s = statusMeta[m.status] || statusMeta.locked;
+    const clickable = (m.status !== 'locked');
+    return `<div onclick="${clickable ? 'openModule('+m.id+')' : ''}"
+      style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;
+      ${clickable ? 'cursor:pointer' : 'opacity:.65'};transition:box-shadow .15s"
+      ${clickable ? 'onmouseover="this.style.boxShadow=\'var(--sh)\'" onmouseout="this.style.boxShadow=\'none\'"' : ''}>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <span style="font-size:.72rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Módulo ${m.module_number}</span>
+        <span class="pill" style="background:${s.bg};color:${s.color}">${s.icon} ${s.label}</span>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;color:var(--ink);line-height:1.3">${m.title}</div>
+      ${m.status === 'completed' && m.quiz_score != null ? `<div style="font-size:.78rem;color:var(--green);margin-top:.5rem">Quiz: ${m.quiz_score} correctas</div>` : ''}
+      ${m.status === 'in_progress' && m.attempts > 0 ? `<div style="font-size:.78rem;color:var(--blue);margin-top:.5rem">Intentos: ${m.attempts}/3</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function openModule(id) {
+  document.getElementById('cli-view-course').style.display = 'none';
+  document.getElementById('cli-view-module').style.display = '';
+  const el = document.getElementById('mod-detail');
+  el.innerHTML = '<div class="loading">Cargando módulo...</div>';
+  const m = await api('/api/course/modules/' + id);
+  if (!m) { el.innerHTML = '<div class="loading">No se pudo cargar el módulo</div>'; return; }
+
+  const quizHtml = (m.quiz || []).map((q, i) => `
+    <div class="card" style="margin-bottom:.75rem">
+      <div style="font-weight:600;color:var(--ink);margin-bottom:.6rem">${i+1}. ${q.question}</div>
+      ${['a','b','c','d'].map(opt => q['option_'+opt] ? `
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:.9rem;color:var(--ink2)">
+          <input type="radio" name="q_${q.id}" value="${opt}"> ${q['option_'+opt]}
+        </label>` : '').join('')}
+    </div>`).join('');
+
+  const isCompleted = m.status === 'completed';
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+      <h1>Módulo ${m.module_number}: ${m.title}</h1>
+      ${isCompleted ? '<span class="pill pill-green">✓ Completado</span>' : ''}
+    </div>
+    <div class="card" style="line-height:1.7">${mdToHtml(m.content_md)}</div>
+    ${(m.quiz && m.quiz.length) ? `
+      <h2 style="margin:1.5rem 0 .75rem">Quiz del módulo</h2>
+      <div id="quiz-form" data-module="${m.id}">${quizHtml}</div>
+      <div class="login-err" id="quiz-err" style="text-align:left"></div>
+      <div id="quiz-result"></div>
+      ${isCompleted ? '<p style="color:var(--green);font-size:.9rem">Ya aprobaste este módulo.</p>'
+        : `<button class="btn-gold" id="quiz-submit" onclick="submitQuiz(${m.id})">Enviar quiz (intento ${(m.attempts||0)+1}/${m.max_attempts})</button>`}
+    ` : '<p style="color:var(--ink3);margin-top:1rem">Este módulo aún no tiene quiz cargado.</p>'}
+  `;
+}
+
+async function submitQuiz(moduleId) {
+  const err = document.getElementById('quiz-err');
+  const resultEl = document.getElementById('quiz-result');
+  err.textContent = ''; resultEl.innerHTML = '';
+  const form = document.getElementById('quiz-form');
+  const questions = form.querySelectorAll('[name^="q_"]');
+  const seen = new Set();
+  const answers = [];
+  questions.forEach(inp => {
+    const qid = parseInt(inp.name.slice(2));
+    if (!seen.has(qid)) seen.add(qid);
+    if (inp.checked) answers.push({ question_id: qid, answer: inp.value });
+  });
+  if (answers.length < seen.size) { err.textContent = 'Responde todas las preguntas antes de enviar.'; return; }
+
+  const btn = document.getElementById('quiz-submit');
+  if (btn) btn.disabled = true;
+  const res = await api(`/api/course/modules/${moduleId}/complete`, {
+    method: 'POST', body: JSON.stringify({ quiz_answers: answers })
+  });
+  if (btn) btn.disabled = false;
+
+  if (!res) { err.textContent = 'No se pudo enviar el quiz (¿límite de intentos alcanzado?).'; return; }
+
+  if (res.passed) {
+    resultEl.innerHTML = `<div class="card" style="border-color:var(--green);background:var(--green-bg)">
+      <div style="font-weight:700;color:var(--green)">¡Aprobado! 🎉 ${res.score}/${res.total} correctas</div>
+      ${res.next_unlocked && res.next_unlocked.length ? `<div style="font-size:.88rem;color:var(--ink2);margin-top:.4rem">Desbloqueaste: Módulo ${res.next_unlocked.join(', Módulo ')}</div>` : ''}
+    </div>`;
+    if (btn) btn.style.display = 'none';
+    setTimeout(() => { backToCourse(); loadCourse(); }, 2200);
+  } else {
+    resultEl.innerHTML = `<div class="card" style="border-color:var(--amber);background:var(--amber-bg)">
+      <div style="font-weight:700;color:var(--amber)">No alcanzaste el mínimo: ${res.score}/${res.total} (necesitas ${res.needed})</div>
+      <div style="font-size:.88rem;color:var(--ink2);margin-top:.4rem">Intentos restantes: ${res.attempts_left}</div>
+    </div>`;
+    if (res.attempts_left <= 0 && btn) btn.style.display = 'none';
+  }
+}
+
+// ============================================================
+// PROGRESO DEL CLIENTE — PSICÓLOGO
+// ============================================================
+async function loadCourseProgress() {
+  const tbody = document.getElementById('progress-tbody');
+  const data = await api('/api/course/progress');
+  if (!data) { tbody.innerHTML = '<tr><td colspan="5" class="loading">No se pudo cargar</td></tr>'; return; }
+  const rows = data.progress || [];
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:2rem">No hay clientes con actividad.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(c => `<tr>
+    <td class="td-name" style="cursor:default">${c.name}</td>
+    <td>${c.email}</td>
+    <td><span class="pill ${c.modules_completed === c.total_modules && c.total_modules > 0 ? 'pill-green' : 'pill-blue'}">${c.modules_completed}/${c.total_modules}</span></td>
+    <td style="color:var(--ink2);font-size:.82rem">${c.quiz_scores.length ? c.quiz_scores.map(q => 'M'+q.module_id+':'+q.score).join(' · ') : '—'}</td>
+    <td style="color:var(--ink3)">${c.last_activity ? new Date(c.last_activity).toLocaleDateString('es-CO') : '—'}</td>
+  </tr>`).join('');
 }
 </script>
 </body>
