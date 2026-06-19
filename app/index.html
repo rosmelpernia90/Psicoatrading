@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PsicoaTrading — Panel Clínico</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -189,6 +190,7 @@ textarea.form-input{min-height:90px;resize:vertical}
       <button class="sb-item" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
       <button class="sb-item" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
       <button class="sb-item" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
+      <button class="sb-item" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic">📖</span><span>Diario clínico</span></button>
       <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
     </nav>
     <div class="sb-footer">
@@ -280,6 +282,21 @@ textarea.form-input{min-height:90px;resize:vertical}
       </div>
     </div>
 
+    <!-- DIARIO CLÍNICO (psicólogo) -->
+    <div class="view-panel" id="view-diary-psych">
+      <h1 style="margin-bottom:1rem">Diario Clínico</h1>
+      <div style="display:flex;gap:12px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+        <select class="form-input" id="diary-client-select" onchange="loadPsychDiary()"
+          style="max-width:280px">
+          <option value="">— Selecciona un cliente —</option>
+        </select>
+        <div style="font-size:.85rem;color:var(--ink3)" id="diary-client-stats"></div>
+      </div>
+      <div id="diary-psych-content">
+        <div style="color:var(--ink3);padding:2rem;text-align:center">Selecciona un cliente para ver su diario.</div>
+      </div>
+    </div>
+
     <!-- PROGRESO DEL CLIENTE (curso) -->
     <div class="view-panel" id="view-progress">
       <h1 style="margin-bottom:1rem">Progreso del cliente — Curso</h1>
@@ -354,20 +371,133 @@ textarea.form-input{min-height:90px;resize:vertical}
     </div>
   </header>
 
+  <!-- NAVEGACIÓN CLIENTE -->
+  <nav style="background:var(--white);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;gap:0">
+    <button id="cli-nav-course" onclick="clientShowSection('course')"
+      style="padding:12px 20px;background:none;border:none;border-bottom:2px solid var(--gold);font-family:inherit;font-size:.88rem;font-weight:600;color:var(--gold);cursor:pointer">
+      📚 Curso
+    </button>
+    <button id="cli-nav-diary" onclick="clientShowSection('diary')"
+      style="padding:12px 20px;background:none;border:none;border-bottom:2px solid transparent;font-family:inherit;font-size:.88rem;font-weight:500;color:var(--ink2);cursor:pointer">
+      📖 Diario
+    </button>
+  </nav>
+
   <main style="max-width:1040px;margin:0 auto;padding:2rem;width:100%">
-    <!-- MOSAICO DE MÓDULOS -->
-    <div id="cli-view-course">
-      <h1 style="margin-bottom:.4rem">Curso Trader Consciente</h1>
-      <p style="color:var(--ink3);font-size:.9rem;margin-bottom:1.5rem">Completa los módulos en orden. Aprueba el quiz (80%) para avanzar.</p>
-      <div id="course-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
-        <div class="loading">Cargando módulos...</div>
+    <!-- SECCIÓN CURSO -->
+    <div id="cli-section-course">
+      <div id="cli-view-course">
+        <h1 style="margin-bottom:.4rem">Curso Trader Consciente</h1>
+        <p style="color:var(--ink3);font-size:.9rem;margin-bottom:1.5rem">Completa los módulos en orden. Aprueba el quiz (80%) para avanzar.</p>
+        <div id="course-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+          <div class="loading">Cargando módulos...</div>
+        </div>
+      </div>
+      <div id="cli-view-module" style="display:none">
+        <button class="btn-outline" style="margin-bottom:1rem" onclick="backToCourse()">← Volver al curso</button>
+        <div id="mod-detail"><div class="loading">Cargando...</div></div>
       </div>
     </div>
 
-    <!-- DETALLE DE MÓDULO -->
-    <div id="cli-view-module" style="display:none">
-      <button class="btn-outline" style="margin-bottom:1rem" onclick="backToCourse()">← Volver al curso</button>
-      <div id="mod-detail"><div class="loading">Cargando...</div></div>
+    <!-- SECCIÓN DIARIO -->
+    <div id="cli-section-diary" style="display:none">
+      <!-- Vista principal del diario -->
+      <div id="diary-home">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem">
+          <div>
+            <h1>Diario de Trading</h1>
+            <div style="font-size:.85rem;color:var(--ink3)" id="diary-streak"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-outline" onclick="showDiaryStats()">📊 Estadísticas</button>
+            <button class="btn-gold" id="diary-new-btn" onclick="showDiaryForm(null)">+ Entrada de hoy</button>
+          </div>
+        </div>
+        <!-- Mini calendario -->
+        <div class="card" style="margin-bottom:1.25rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <button onclick="diaryCalPrev()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.9rem">‹</button>
+            <div style="font-weight:600;color:var(--ink);font-size:.95rem" id="diary-cal-month"></div>
+            <button onclick="diaryCalNext()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.9rem">›</button>
+          </div>
+          <div id="diary-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center">
+            <div class="loading">Cargando...</div>
+          </div>
+        </div>
+        <!-- Entradas recientes -->
+        <h2 style="font-size:1rem;margin-bottom:.75rem;color:var(--ink)">Entradas recientes</h2>
+        <div id="diary-recent"></div>
+      </div>
+
+      <!-- Formulario de entrada -->
+      <div id="diary-form-view" style="display:none">
+        <button class="btn-outline" style="margin-bottom:1rem" onclick="showDiaryHome()">← Volver al diario</button>
+        <div class="card">
+          <h2 id="diary-form-title" style="margin-bottom:1.25rem;font-size:1.2rem">Nueva entrada</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Fecha</label>
+              <input class="form-input" type="date" id="df-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">¿Operé hoy?</label>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button id="df-traded-yes" onclick="setTraded(true)"
+                  style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit;font-size:.88rem">
+                  ✅ Sí operé
+                </button>
+                <button id="df-traded-no" onclick="setTraded(false)"
+                  style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit;font-size:.88rem">
+                  🚫 No operé
+                </button>
+              </div>
+              <input type="hidden" id="df-traded" value="">
+            </div>
+            <div class="form-group" id="df-result-group">
+              <label class="form-label">Resultado financiero del día (opcional)</label>
+              <input class="form-input" type="number" step="0.01" id="df-result" placeholder="ej: 150 o -80">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">¿Cómo me sentí emocionalmente hoy?</label>
+              <div style="display:flex;gap:8px;margin-top:4px" id="df-score-btns">
+                <button onclick="setScore(1)" data-s="1" style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:1.2rem" title="Muy mal">😔</button>
+                <button onclick="setScore(2)" data-s="2" style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:1.2rem" title="Mal">😕</button>
+                <button onclick="setScore(3)" data-s="3" style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:1.2rem" title="Regular">😐</button>
+                <button onclick="setScore(4)" data-s="4" style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:1.2rem" title="Bien">🙂</button>
+                <button onclick="setScore(5)" data-s="5" style="flex:1;padding:10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:1.2rem" title="Muy bien">😊</button>
+              </div>
+              <input type="hidden" id="df-score" value="">
+            </div>
+          </div>
+          <!-- Preguntas dinámicas del curso -->
+          <div id="df-dynamic-questions" style="margin-top:.5rem"></div>
+          <div class="form-group full" style="margin-top:1rem">
+            <label class="form-label">Notas libres</label>
+            <textarea class="form-input" id="df-notes" rows="4" placeholder="¿Qué más quieres registrar de este día?"></textarea>
+          </div>
+          <div class="login-err" id="df-err" style="text-align:left"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem">
+            <button class="btn-outline" onclick="showDiaryHome()">Cancelar</button>
+            <button class="btn-gold" id="df-save" onclick="saveDiaryEntry()">Guardar entrada</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div id="diary-stats-view" style="display:none">
+        <button class="btn-outline" style="margin-bottom:1rem" onclick="showDiaryHome()">← Volver al diario</button>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.25rem" id="diary-stat-kpis"></div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="section-title">Estado emocional en el tiempo</div>
+          <canvas id="diary-chart" height="100"></canvas>
+        </div>
+      </div>
+
+      <!-- Vista de una entrada -->
+      <div id="diary-entry-view" style="display:none">
+        <button class="btn-outline" style="margin-bottom:1rem" onclick="showDiaryHome()">← Volver al diario</button>
+        <div id="diary-entry-detail"></div>
+      </div>
     </div>
   </main>
 </div>
@@ -454,7 +584,7 @@ function enterApp() {
     document.getElementById('app-view').classList.remove('active');
     document.getElementById('app-cliente').style.display = 'flex';
     document.getElementById('cliente-name').textContent = USER?.name || USER?.email || '';
-    backToCourse();
+    clientShowSection('course');
     loadCourse();
   }
 }
@@ -477,6 +607,7 @@ function showView(name) {
   if (name === 'emails') loadEmails();
   if (name === 'users') loadUsers();
   if (name === 'progress') loadCourseProgress();
+  if (name === 'diary-psych') initPsychDiary();
 }
 
 // ============================================================
@@ -938,6 +1069,357 @@ async function submitQuiz(moduleId) {
     </div>`;
     if (res.attempts_left <= 0 && btn) btn.style.display = 'none';
   }
+}
+
+// ============================================================
+// DIARIO — CLIENTE
+// ============================================================
+let diaryEntries = [];          // cache de entradas
+let diaryCalYear, diaryCalMonth; // año/mes del mini-calendario
+let diaryEntryIdEditing = null;  // null = nueva entrada
+let diaryChartInstance = null;
+let diaryQuestions = [];
+let tradedValue = null;
+let scoreValue = null;
+
+function clientShowSection(sec) {
+  document.getElementById('cli-section-course').style.display = sec === 'course' ? '' : 'none';
+  document.getElementById('cli-section-diary').style.display  = sec === 'diary'  ? '' : 'none';
+  const nc = document.getElementById('cli-nav-course');
+  const nd = document.getElementById('cli-nav-diary');
+  nc.style.borderBottomColor = sec === 'course' ? 'var(--gold)' : 'transparent';
+  nc.style.color = sec === 'course' ? 'var(--gold)' : 'var(--ink2)';
+  nc.style.fontWeight = sec === 'course' ? '600' : '500';
+  nd.style.borderBottomColor = sec === 'diary' ? 'var(--gold)' : 'transparent';
+  nd.style.color = sec === 'diary' ? 'var(--gold)' : 'var(--ink2)';
+  nd.style.fontWeight = sec === 'diary' ? '600' : '500';
+  if (sec === 'diary') initDiary();
+}
+
+async function initDiary() {
+  const today = new Date();
+  diaryCalYear  = today.getFullYear();
+  diaryCalMonth = today.getMonth();
+  await loadDiaryEntries();
+  await loadDiaryQuestions();
+  showDiaryHome();
+}
+
+async function loadDiaryEntries() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0,10);
+  const data = await api(`/api/diary/entries?from_date=${from}`);
+  diaryEntries = data?.entries || [];
+}
+
+async function loadDiaryQuestions() {
+  const data = await api('/api/diary/questions');
+  diaryQuestions = data?.questions || [];
+}
+
+function showDiaryHome() {
+  document.getElementById('diary-home').style.display = '';
+  document.getElementById('diary-form-view').style.display = 'none';
+  document.getElementById('diary-stats-view').style.display = 'none';
+  document.getElementById('diary-entry-view').style.display = 'none';
+  renderDiaryCalendar();
+  renderDiaryRecent();
+  // Botón "entrada de hoy"
+  const todayStr = new Date().toISOString().slice(0,10);
+  const hasToday = diaryEntries.some(e => e.entry_date === todayStr);
+  const btn = document.getElementById('diary-new-btn');
+  if (btn) { btn.textContent = hasToday ? '✏️ Editar entrada de hoy' : '+ Entrada de hoy'; }
+  // Racha
+  const streak = calcStreak();
+  const streakEl = document.getElementById('diary-streak');
+  if (streakEl) streakEl.textContent = streak > 0 ? `🔥 ${streak} día${streak > 1 ? 's' : ''} consecutivo${streak > 1 ? 's' : ''}` : 'Sin entradas recientes';
+}
+
+function calcStreak() {
+  const dates = new Set(diaryEntries.map(e => e.entry_date));
+  let streak = 0, d = new Date();
+  while (true) {
+    const s = d.toISOString().slice(0,10);
+    if (dates.has(s)) { streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+
+function renderDiaryCalendar() {
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('diary-cal-month').textContent = `${monthNames[diaryCalMonth]} ${diaryCalYear}`;
+  const dates = {};
+  diaryEntries.forEach(e => { dates[e.entry_date] = e; });
+  const firstDay = new Date(diaryCalYear, diaryCalMonth, 1).getDay();
+  const daysInMonth = new Date(diaryCalYear, diaryCalMonth+1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+  const scoreColors = { 1:'#c13628', 2:'#b87a1a', 3:'#9c9690', 4:'#1a6bb5', 5:'#2d8a5e' };
+  const days = ['D','L','M','X','J','V','S'];
+  let html = days.map(d => `<div style="font-size:.72rem;color:var(--ink3);font-weight:600;padding:4px 0">${d}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${diaryCalYear}-${String(diaryCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const e = dates[ds];
+    const isToday = ds === todayStr;
+    const bg = e ? scoreColors[e.emotional_score] : 'transparent';
+    const border = isToday ? '2px solid var(--gold)' : e ? `2px solid ${bg}` : '1px solid var(--border)';
+    const color = e ? '#fff' : isToday ? 'var(--gold)' : 'var(--ink2)';
+    html += `<div onclick="${e ? `openDiaryEntry(${e.id})` : `showDiaryForm(null,'${ds}')`}"
+      title="${e ? '😊 Score: '+e.emotional_score : 'Sin entrada'}"
+      style="border-radius:6px;padding:5px 0;font-size:.8rem;font-weight:${isToday?700:400};
+      background:${bg};border:${border};color:${color};cursor:pointer;text-align:center">${d}</div>`;
+  }
+  document.getElementById('diary-calendar').innerHTML = html;
+}
+
+function diaryCalPrev() {
+  diaryCalMonth--;
+  if (diaryCalMonth < 0) { diaryCalMonth = 11; diaryCalYear--; }
+  renderDiaryCalendar();
+}
+function diaryCalNext() {
+  diaryCalMonth++;
+  if (diaryCalMonth > 11) { diaryCalMonth = 0; diaryCalYear++; }
+  renderDiaryCalendar();
+}
+
+function renderDiaryRecent() {
+  const el = document.getElementById('diary-recent');
+  const scoreEmoji = { 1:'😔', 2:'😕', 3:'😐', 4:'🙂', 5:'😊' };
+  const recent = diaryEntries.slice(0, 7);
+  if (!recent.length) {
+    el.innerHTML = '<div style="color:var(--ink3);text-align:center;padding:1.5rem">Aún no has registrado ninguna entrada.</div>';
+    return;
+  }
+  el.innerHTML = recent.map(e => `
+    <div class="card" onclick="openDiaryEntry(${e.id})" style="cursor:pointer;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.25rem">
+      <div>
+        <div style="font-weight:600;color:var(--ink);font-size:.92rem">${new Date(e.entry_date+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>
+        <div style="font-size:.78rem;color:var(--ink3);margin-top:2px">${e.traded_today ? '📈 Operé' : '🚫 No operé'}${e.financial_result != null ? ' · '+( e.financial_result >= 0 ? '+' : '')+e.financial_result : ''}</div>
+      </div>
+      <div style="font-size:1.6rem">${scoreEmoji[e.emotional_score] || '—'}</div>
+    </div>`).join('');
+}
+
+async function showDiaryForm(entryId, prefillDate) {
+  diaryEntryIdEditing = entryId;
+  document.getElementById('diary-home').style.display = 'none';
+  document.getElementById('diary-form-view').style.display = '';
+  tradedValue = null; scoreValue = null;
+  const today = new Date().toISOString().slice(0,10);
+
+  if (entryId) {
+    document.getElementById('diary-form-title').textContent = 'Editar entrada de hoy';
+    const data = await api('/api/diary/entries/' + entryId);
+    if (!data) return;
+    document.getElementById('df-date').value = data.entry_date;
+    document.getElementById('df-result').value = data.financial_result ?? '';
+    document.getElementById('df-notes').value = data.free_notes ?? '';
+    setTraded(data.traded_today);
+    setScore(data.emotional_score);
+    buildDynamicQuestions(data.answers || []);
+  } else {
+    document.getElementById('diary-form-title').textContent = 'Nueva entrada';
+    document.getElementById('df-date').value = prefillDate || today;
+    document.getElementById('df-result').value = '';
+    document.getElementById('df-notes').value = '';
+    setTraded(null); setScore(null);
+    buildDynamicQuestions([]);
+  }
+  document.getElementById('df-err').textContent = '';
+}
+
+function buildDynamicQuestions(existingAnswers) {
+  const ansMap = {};
+  existingAnswers.forEach(a => { ansMap[a.question_id] = a.answer_text; });
+  const container = document.getElementById('df-dynamic-questions');
+  if (!diaryQuestions.length) { container.innerHTML = ''; return; }
+  container.innerHTML = `<div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:.5rem">
+    <div class="section-title" style="margin-bottom:.75rem">Preguntas del curso desbloqueadas</div>
+    ${diaryQuestions.map(q => `
+      <div class="form-group">
+        <label class="form-label" style="text-transform:none;font-size:.82rem;letter-spacing:0;color:var(--ink2)">${q.question_text}</label>
+        <textarea class="form-input" id="dfq_${q.id}" rows="2" placeholder="Tu respuesta...">${ansMap[q.id] || ''}</textarea>
+      </div>`).join('')}
+  </div>`;
+}
+
+function setTraded(val) {
+  tradedValue = val;
+  const y = document.getElementById('df-traded-yes');
+  const n = document.getElementById('df-traded-no');
+  const rg = document.getElementById('df-result-group');
+  if (y && n) {
+    y.style.background = val === true  ? 'var(--green-bg)' : 'var(--white)';
+    y.style.borderColor = val === true  ? 'var(--green)'   : 'var(--border)';
+    y.style.color       = val === true  ? 'var(--green)'   : 'var(--ink2)';
+    n.style.background  = val === false ? 'var(--red-bg)'  : 'var(--white)';
+    n.style.borderColor = val === false ? 'var(--red)'     : 'var(--border)';
+    n.style.color       = val === false ? 'var(--red)'     : 'var(--ink2)';
+  }
+  if (rg) rg.style.display = val === true ? '' : 'none';
+}
+
+function setScore(val) {
+  scoreValue = val;
+  document.querySelectorAll('#df-score-btns button').forEach(btn => {
+    const s = parseInt(btn.dataset.s);
+    btn.style.background  = s === val ? 'var(--gold-soft)' : 'var(--white)';
+    btn.style.borderColor = s === val ? 'var(--gold)'      : 'var(--border)';
+  });
+}
+
+async function saveDiaryEntry() {
+  const err = document.getElementById('df-err');
+  err.textContent = '';
+  if (tradedValue === null) { err.textContent = '¿Operaste hoy? Selecciona una opción.'; return; }
+  if (!scoreValue) { err.textContent = 'Selecciona tu estado emocional.'; return; }
+  const entry_date = document.getElementById('df-date').value;
+  if (!entry_date) { err.textContent = 'Selecciona la fecha.'; return; }
+
+  const answers = diaryQuestions.map(q => ({
+    question_id: q.id,
+    answer_text: (document.getElementById('dfq_'+q.id)?.value || '').trim()
+  })).filter(a => a.answer_text);
+
+  const body = {
+    entry_date,
+    traded_today: tradedValue,
+    financial_result: document.getElementById('df-result').value ? parseFloat(document.getElementById('df-result').value) : null,
+    emotional_score: scoreValue,
+    free_notes: document.getElementById('df-notes').value.trim() || null,
+    answers
+  };
+
+  const btn = document.getElementById('df-save');
+  btn.disabled = true;
+  let res;
+  if (diaryEntryIdEditing) {
+    res = await api('/api/diary/entries/' + diaryEntryIdEditing, { method: 'PATCH', body: JSON.stringify(body) });
+  } else {
+    res = await api('/api/diary/entries', { method: 'POST', body: JSON.stringify(body) });
+  }
+  btn.disabled = false;
+
+  if (res && (res.success || res.entry_id)) {
+    await loadDiaryEntries();
+    showDiaryHome();
+  } else {
+    err.textContent = 'No se pudo guardar. ¿Ya existe una entrada para esta fecha?';
+  }
+}
+
+async function openDiaryEntry(id) {
+  document.getElementById('diary-home').style.display = 'none';
+  document.getElementById('diary-entry-view').style.display = '';
+  const el = document.getElementById('diary-entry-detail');
+  el.innerHTML = '<div class="loading">Cargando...</div>';
+  const e = await api('/api/diary/entries/' + id);
+  if (!e) { el.innerHTML = '<div class="loading">Error cargando entrada</div>'; return; }
+  const scoreEmoji = { 1:'😔 Muy mal', 2:'😕 Mal', 3:'😐 Regular', 4:'🙂 Bien', 5:'😊 Muy bien' };
+  const isToday = e.entry_date === new Date().toISOString().slice(0,10);
+  el.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600">${new Date(e.entry_date+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+          <div style="font-size:.85rem;color:var(--ink3);margin-top:2px">${e.traded_today ? '📈 Operé ese día' : '🚫 No operé ese día'}${e.financial_result != null ? ' · Resultado: '+(e.financial_result >= 0 ? '+' : '')+e.financial_result : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:1.5rem">${scoreEmoji[e.emotional_score] || ''}</span>
+          ${isToday ? `<button class="btn-outline" style="padding:6px 12px;font-size:.82rem" onclick="showDiaryForm(${e.id})">✏️ Editar</button>` : ''}
+        </div>
+      </div>
+      ${e.free_notes ? `<div class="card" style="background:var(--bg);margin-bottom:.75rem"><div class="section-title">Notas libres</div><p style="color:var(--ink2);font-size:.9rem;line-height:1.6">${e.free_notes}</p></div>` : ''}
+      ${(e.answers||[]).length ? `<div class="section-title">Preguntas del curso</div>
+        ${e.answers.map(a => {
+          const q = diaryQuestions.find(dq => dq.id === a.question_id);
+          return q && a.answer_text ? `<div style="margin-bottom:.75rem"><div style="font-size:.82rem;color:var(--gold);font-weight:600;margin-bottom:3px">${q.question_text}</div><div style="color:var(--ink2);font-size:.9rem;line-height:1.6">${a.answer_text}</div></div>` : '';
+        }).join('')}` : ''}
+    </div>`;
+}
+
+async function showDiaryStats() {
+  document.getElementById('diary-home').style.display = 'none';
+  document.getElementById('diary-stats-view').style.display = '';
+  const all = await api('/api/diary/entries');
+  const entries = all?.entries || [];
+  const traded = entries.filter(e => e.traded_today).length;
+  const avgScore = entries.length ? (entries.reduce((s,e) => s+e.emotional_score, 0)/entries.length).toFixed(1) : 0;
+  const financial = entries.reduce((s,e) => s+(e.financial_result||0), 0);
+  document.getElementById('diary-stat-kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Total entradas</div><div class="kpi-value gold">${entries.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Días operados</div><div class="kpi-value">${traded}</div><div class="kpi-sub">de ${entries.length} registrados</div></div>
+    <div class="kpi"><div class="kpi-label">Score emocional prom.</div><div class="kpi-value ${avgScore >= 4 ? 'good' : avgScore >= 3 ? 'gold' : 'danger'}">${avgScore}</div><div class="kpi-sub">sobre 5</div></div>
+    <div class="kpi"><div class="kpi-label">Acumulado financiero</div><div class="kpi-value ${financial >= 0 ? 'good' : 'danger'}">${financial >= 0 ? '+' : ''}${financial.toFixed(0)}</div></div>`;
+
+  const sorted = [...entries].sort((a,b) => a.entry_date.localeCompare(b.entry_date)).slice(-30);
+  if (diaryChartInstance) { diaryChartInstance.destroy(); diaryChartInstance = null; }
+  const ctx = document.getElementById('diary-chart');
+  if (ctx && sorted.length) {
+    diaryChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: sorted.map(e => e.entry_date.slice(5)),
+        datasets: [{
+          label: 'Estado emocional',
+          data: sorted.map(e => e.emotional_score),
+          borderColor: '#b8922a', backgroundColor: 'rgba(184,146,42,.1)',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#b8922a'
+        }]
+      },
+      options: {
+        scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+
+// ============================================================
+// DIARIO — PSICÓLOGO
+// ============================================================
+async function initPsychDiary() {
+  const sel = document.getElementById('diary-client-select');
+  if (sel.options.length > 1) return; // ya cargó
+  const data = await api('/api/admin/users');
+  (data?.users || []).filter(u => u.user_type === 'client').forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = `${c.name} (${c.email})`;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadPsychDiary() {
+  const clientId = document.getElementById('diary-client-select').value;
+  const content = document.getElementById('diary-psych-content');
+  const statsEl = document.getElementById('diary-client-stats');
+  if (!clientId) { content.innerHTML = '<div style="color:var(--ink3);padding:2rem;text-align:center">Selecciona un cliente.</div>'; statsEl.textContent = ''; return; }
+  content.innerHTML = '<div class="loading">Cargando diario...</div>';
+  const data = await api(`/api/diary/client/${clientId}`);
+  if (!data) { content.innerHTML = '<div class="loading">Error cargando datos</div>'; return; }
+  const { entries, stats } = data;
+  statsEl.textContent = `${stats.total_entries} entradas · ${stats.days_traded} días operados · Score prom: ${stats.avg_emotional ?? '—'} · Financiero: ${stats.total_financial >= 0 ? '+' : ''}${stats.total_financial}`;
+  const scoreEmoji = { 1:'😔', 2:'😕', 3:'😐', 4:'🙂', 5:'😊' };
+  if (!entries.length) { content.innerHTML = '<div style="color:var(--ink3);padding:2rem;text-align:center">Este cliente aún no tiene entradas en el diario.</div>'; return; }
+  content.innerHTML = entries.map(e => `
+    <div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <div style="font-weight:600;color:var(--ink)">${new Date(e.entry_date+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'short',year:'numeric'})}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="pill ${e.traded_today ? 'pill-green' : 'pill-red'}">${e.traded_today ? 'Operó' : 'No operó'}</span>
+          <span style="font-size:1.3rem">${scoreEmoji[e.emotional_score]}</span>
+          ${e.financial_result != null ? `<span class="pill ${e.financial_result >= 0 ? 'pill-green' : 'pill-red'}">${e.financial_result >= 0 ? '+' : ''}${e.financial_result}</span>` : ''}
+        </div>
+      </div>
+      ${e.free_notes ? `<p style="color:var(--ink2);font-size:.88rem;margin-bottom:.5rem;line-height:1.5">${e.free_notes}</p>` : ''}
+      ${(e.answers||[]).filter(a=>a.answer_text).map(a => `
+        <div style="background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:4px;font-size:.82rem">
+          <div style="color:var(--gold);font-weight:600;margin-bottom:2px">Pregunta #${a.question_id}</div>
+          <div style="color:var(--ink2);line-height:1.5">${a.answer_text}</div>
+        </div>`).join('')}
+    </div>`).join('');
 }
 
 // ============================================================

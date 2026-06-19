@@ -5,7 +5,7 @@ CRM Clínico con embudo de ventas automatizado
 """
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -13,8 +13,8 @@ from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, Boolean, DateTime,
-    JSON, Enum as SAEnum, ForeignKey, func, DECIMAL
+    create_engine, Column, Integer, String, Text, Boolean, DateTime, Date,
+    JSON, Enum as SAEnum, ForeignKey, func, DECIMAL, or_
 )
 from sqlalchemy.orm import sessionmaker, Session, declarative_base, relationship
 from jose import JWTError, jwt
@@ -202,6 +202,37 @@ class CourseProgress(Base):
     updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class DiaryQuestion(Base):
+    __tablename__ = "diary_questions"
+    id                    = Column(Integer, primary_key=True, index=True)
+    question_text         = Column(Text, nullable=False)
+    unlocked_by_module_id = Column(Integer, ForeignKey("courses_modules.id"), nullable=True)
+    is_active             = Column(Boolean, default=True)
+    display_order         = Column(Integer, default=0)
+
+
+class DiaryEntry(Base):
+    __tablename__ = "diary_entries"
+    id               = Column(Integer, primary_key=True, index=True)
+    client_id        = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    entry_date       = Column(Date, nullable=False)
+    traded_today     = Column(Boolean, default=False)
+    financial_result = Column(DECIMAL(12, 2), nullable=True)
+    emotional_score  = Column(Integer, nullable=False)
+    free_notes       = Column(Text, nullable=True)
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    answers          = relationship("DiaryEntryAnswer", backref="entry", cascade="all, delete-orphan")
+
+
+class DiaryEntryAnswer(Base):
+    __tablename__ = "diary_entry_answers"
+    id          = Column(Integer, primary_key=True, index=True)
+    entry_id    = Column(Integer, ForeignKey("diary_entries.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("diary_questions.id"), nullable=False)
+    answer_text = Column(Text)
+
+
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
@@ -262,6 +293,28 @@ class QuizAnswer(BaseModel):
 
 class CompleteModuleRequest(BaseModel):
     quiz_answers: List[QuizAnswer]
+
+
+class DiaryAnswerIn(BaseModel):
+    question_id: int
+    answer_text: str
+
+
+class DiaryEntryCreate(BaseModel):
+    entry_date: Optional[str] = None        # YYYY-MM-DD, defaults to today
+    traded_today: bool
+    financial_result: Optional[float] = None
+    emotional_score: int                    # 1-5
+    free_notes: Optional[str] = None
+    answers: Optional[List[DiaryAnswerIn]] = []
+
+
+class DiaryEntryUpdate(BaseModel):
+    traded_today: Optional[bool] = None
+    financial_result: Optional[float] = None
+    emotional_score: Optional[int] = None
+    free_notes: Optional[str] = None
+    answers: Optional[List[DiaryAnswerIn]] = None
 
 
 class ClinicalNoteCreate(BaseModel):
@@ -347,6 +400,45 @@ def schedule_email_sequence(db: Session, lead_id: int, lead_name: str, profile_n
     db.commit()
 
 
+def send_diary_reminders():
+    """Send email to clients with 3+ days without a diary entry (runs daily)."""
+    if not SENDGRID_API_KEY:
+        return
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        today = date_type.today()
+        three_days_ago = today - timedelta(days=3)
+        db = SessionLocal()
+        clients = db.query(Client).filter(Client.is_active == True, Client.role == "cliente").all()
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        for client in clients:
+            last = db.query(DiaryEntry)\
+                .filter(DiaryEntry.client_id == client.id)\
+                .order_by(DiaryEntry.entry_date.desc()).first()
+            last_date = last.entry_date if last else (today - timedelta(days=100))
+            if (today - last_date).days == 3:
+                msg = Mail(
+                    from_email=(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
+                    to_emails=client.email,
+                    subject="Tu diario de trading te espera 📖",
+                    html_content=(
+                        f"<p>Hola {client.name},</p>"
+                        f"<p>Llevas 3 días sin escribir en tu diario de trading. "
+                        f"Tomarte 5 minutos para reflexionar sobre tus operaciones "
+                        f"puede marcar una gran diferencia en tu desarrollo.</p>"
+                        f"<p><a href='https://app.psicoatrading.online'>Escribir hoy →</a></p>"
+                    )
+                )
+                try:
+                    sg.send(msg)
+                except Exception as e:
+                    print(f"Diary reminder error for {client.email}: {e}")
+        db.close()
+    except Exception as e:
+        print(f"Diary reminder scheduler error: {e}")
+
+
 def send_pending_emails():
     """Called by APScheduler every 5 minutes"""
     if not SENDGRID_API_KEY:
@@ -393,6 +485,7 @@ async def lifespan(app: FastAPI):
     from apscheduler.schedulers.background import BackgroundScheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_pending_emails, "interval", minutes=5)
+    scheduler.add_job(send_diary_reminders, "interval", hours=24)
     scheduler.start()
     print("✅ PsicoaTrading API running — email scheduler active")
     yield
@@ -1123,6 +1216,161 @@ def course_progress_overview(client_id: Optional[int] = None,
             "last_activity": last_activity,
         })
     return {"progress": result}
+
+
+# ============================================
+# DIARIO DE TRADING PSICOLÓGICO
+# ============================================
+def _entry_to_dict(entry: DiaryEntry, with_answers: bool = False) -> dict:
+    d = {
+        "id": entry.id,
+        "entry_date": entry.entry_date.isoformat() if entry.entry_date else None,
+        "traded_today": bool(entry.traded_today),
+        "financial_result": float(entry.financial_result) if entry.financial_result is not None else None,
+        "emotional_score": entry.emotional_score,
+        "free_notes": entry.free_notes,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+    }
+    if with_answers:
+        d["answers"] = [
+            {"question_id": a.question_id, "answer_text": a.answer_text}
+            for a in entry.answers
+        ]
+    return d
+
+
+@app.get("/api/diary/questions")
+def diary_questions(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    completed_module_ids = {
+        p.module_id for p in db.query(CourseProgress)
+        .filter(CourseProgress.client_id == client.id, CourseProgress.status == "completed")
+    }
+    qs = db.query(DiaryQuestion).filter(
+        DiaryQuestion.is_active == True,
+        or_(
+            DiaryQuestion.unlocked_by_module_id == None,
+            DiaryQuestion.unlocked_by_module_id.in_(completed_module_ids) if completed_module_ids else False
+        )
+    ).order_by(DiaryQuestion.display_order).all()
+    return {"questions": [{"id": q.id, "question_text": q.question_text} for q in qs]}
+
+
+@app.post("/api/diary/entries", status_code=201)
+def diary_create_entry(data: DiaryEntryCreate, payload: dict = Depends(verify_token),
+                       db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    if data.emotional_score < 1 or data.emotional_score > 5:
+        raise HTTPException(status_code=400, detail="emotional_score debe ser entre 1 y 5")
+
+    entry_date = date_type.fromisoformat(data.entry_date) if data.entry_date else date_type.today()
+
+    existing = db.query(DiaryEntry).filter(
+        DiaryEntry.client_id == client.id, DiaryEntry.entry_date == entry_date
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Ya existe una entrada para esta fecha")
+
+    entry = DiaryEntry(
+        client_id=client.id,
+        entry_date=entry_date,
+        traded_today=data.traded_today,
+        financial_result=data.financial_result,
+        emotional_score=data.emotional_score,
+        free_notes=data.free_notes,
+    )
+    db.add(entry)
+    db.flush()
+
+    for ans in (data.answers or []):
+        db.add(DiaryEntryAnswer(entry_id=entry.id, question_id=ans.question_id,
+                                answer_text=ans.answer_text))
+    db.commit()
+    db.refresh(entry)
+    return {"success": True, "entry_id": entry.id}
+
+
+@app.get("/api/diary/entries")
+def diary_list_entries(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    client = get_current_client(payload, db)
+    q = db.query(DiaryEntry).filter(DiaryEntry.client_id == client.id)
+    if from_date:
+        q = q.filter(DiaryEntry.entry_date >= date_type.fromisoformat(from_date))
+    if to_date:
+        q = q.filter(DiaryEntry.entry_date <= date_type.fromisoformat(to_date))
+    entries = q.order_by(DiaryEntry.entry_date.desc()).all()
+    return {"entries": [_entry_to_dict(e) for e in entries]}
+
+
+@app.get("/api/diary/entries/{entry_id}")
+def diary_get_entry(entry_id: int, payload: dict = Depends(verify_token),
+                    db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    entry = db.query(DiaryEntry).filter(
+        DiaryEntry.id == entry_id, DiaryEntry.client_id == client.id
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrada no encontrada")
+    return _entry_to_dict(entry, with_answers=True)
+
+
+@app.patch("/api/diary/entries/{entry_id}")
+def diary_update_entry(entry_id: int, data: DiaryEntryUpdate,
+                       payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    client = get_current_client(payload, db)
+    entry = db.query(DiaryEntry).filter(
+        DiaryEntry.id == entry_id, DiaryEntry.client_id == client.id
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrada no encontrada")
+    if entry.entry_date != date_type.today():
+        raise HTTPException(status_code=403, detail="Solo puedes editar la entrada del día de hoy")
+
+    if data.traded_today is not None:
+        entry.traded_today = data.traded_today
+    if data.financial_result is not None:
+        entry.financial_result = data.financial_result
+    if data.emotional_score is not None:
+        if data.emotional_score < 1 or data.emotional_score > 5:
+            raise HTTPException(status_code=400, detail="emotional_score debe ser entre 1 y 5")
+        entry.emotional_score = data.emotional_score
+    if data.free_notes is not None:
+        entry.free_notes = data.free_notes
+
+    if data.answers is not None:
+        db.query(DiaryEntryAnswer).filter(DiaryEntryAnswer.entry_id == entry.id).delete()
+        for ans in data.answers:
+            db.add(DiaryEntryAnswer(entry_id=entry.id, question_id=ans.question_id,
+                                    answer_text=ans.answer_text))
+    db.commit()
+    return {"success": True}
+
+
+@app.get("/api/diary/client/{client_id}")
+def diary_psychologist_view(client_id: int, payload: dict = Depends(verify_token),
+                             db: Session = Depends(get_db)):
+    if payload.get("role") not in ("admin", "psychologist"):
+        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    entries = db.query(DiaryEntry).filter(DiaryEntry.client_id == client_id)\
+        .order_by(DiaryEntry.entry_date.desc()).all()
+    return {
+        "client": {"id": client.id, "name": client.name, "email": client.email},
+        "entries": [_entry_to_dict(e, with_answers=True) for e in entries],
+        "stats": {
+            "total_entries": len(entries),
+            "days_traded": sum(1 for e in entries if e.traded_today),
+            "avg_emotional": round(sum(e.emotional_score for e in entries) / len(entries), 1) if entries else None,
+            "total_financial": float(sum(e.financial_result or 0 for e in entries)),
+        }
+    }
 
 
 # ============================================
