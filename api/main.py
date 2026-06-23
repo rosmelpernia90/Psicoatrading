@@ -1293,6 +1293,50 @@ def solicitar_cambio(data: CambioRequestIn, payload: dict = Depends(verify_token
     return {"success": True, "request_id": req.id}
 
 
+@app.get("/api/mi-psicologo")
+def mi_psicologo(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """El cliente obtiene los datos de su psicólogo asignado y su asignación activa."""
+    if payload.get("role") != "cliente":
+        raise HTTPException(status_code=403, detail="Solo para clientes")
+    client = get_current_client(payload, db)
+    link = db.query(PsicologoPaciente).filter(
+        PsicologoPaciente.paciente_id == client.id, PsicologoPaciente.is_active == True,
+    ).first()
+    if not link:
+        return {"assigned": False}
+    psico = db.query(Psychologist).filter(Psychologist.id == link.psicologo_id).first()
+    prof = db.query(PsicologoProfile).filter(PsicologoProfile.psychologist_id == link.psicologo_id).first()
+    return {
+        "assigned": True,
+        "assignment_id": link.id,
+        "assigned_at": link.assigned_at.isoformat() if link.assigned_at else None,
+        "psicologo_id": psico.id if psico else None,
+        "psicologo_name": psico.name if psico else None,
+        "especialidad": prof.especialidad if prof else None,
+        "bio": prof.bio if prof else None,
+        "idiomas": prof.idiomas if prof else None,
+    }
+
+
+@app.get("/api/mis-solicitudes")
+def mis_solicitudes(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """El cliente ve sus propias solicitudes de cambio de psicólogo."""
+    if payload.get("role") != "cliente":
+        raise HTTPException(status_code=403, detail="Solo para clientes")
+    client = get_current_client(payload, db)
+    rows = db.query(CambioPsicologoRequest).filter(
+        CambioPsicologoRequest.paciente_id == client.id,
+    ).order_by(CambioPsicologoRequest.created_at.desc()).all()
+    return {"solicitudes": [
+        {
+            "id": r.id,
+            "reason_category": r.reason_category,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        } for r in rows
+    ]}
+
+
 @app.get("/api/cambio-psicologo/pendientes")
 def cambios_pendientes(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     rows = db.query(CambioPsicologoRequest).filter(
@@ -1310,7 +1354,8 @@ def cambios_pendientes(payload: dict = Depends(require_admin), db: Session = Dep
             "reason_category": r.reason_category,
             "reason_text": r.reason_text if r.share_reason_with_new else None,
             "shared": bool(r.share_reason_with_new),
-            "reason_text_admin": r.reason_text,  # admin siempre lo ve
+            "reason_text_admin": r.reason_text,
+            "status": r.status,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         })
     return {"solicitudes": out}

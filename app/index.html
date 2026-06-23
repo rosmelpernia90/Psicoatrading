@@ -1787,13 +1787,10 @@ async function loadCourseProgress() {
 let cambioMotivoSel = null;
 
 async function initClientePsico() {
-  const data = await api('/api/asignaciones/active');
+  const data = await api('/api/mi-psicologo');
   if (!data) return;
-  // Buscar la asignación del cliente actual
-  const asigs = data.assignments || [];
-  const mia = asigs.find(a => a.paciente_id === USER?.id);
 
-  if (!mia) {
+  if (!data.assigned) {
     document.getElementById('cli-psico-none').style.display = '';
     document.getElementById('cli-psico-card').style.display = 'none';
     return;
@@ -1802,31 +1799,24 @@ async function initClientePsico() {
   document.getElementById('cli-psico-none').style.display = 'none';
   document.getElementById('cli-psico-card').style.display = '';
 
-  document.getElementById('cli-psico-name').textContent = mia.psicologo_name || '—';
-  document.getElementById('cli-psico-desde').textContent = mia.assigned_at
-    ? new Date(mia.assigned_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
+  document.getElementById('cli-psico-name').textContent = data.psicologo_name || '—';
+  document.getElementById('cli-psico-especialidad').textContent = data.especialidad || '';
+  document.getElementById('cli-psico-idiomas').textContent = data.idiomas ? '🌐 ' + data.idiomas : '';
+  document.getElementById('cli-psico-desde').textContent = data.assigned_at
+    ? new Date(data.assigned_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
     : '—';
-
-  // Cargar perfil del psicólogo para bio/especialidad
-  const prof = await api('/api/psicologos/' + mia.psicologo_id + '/load');
-  if (prof?.profile) {
-    const p = prof.profile;
-    document.getElementById('cli-psico-especialidad').textContent = p.especialidad || '';
-    document.getElementById('cli-psico-idiomas').textContent = p.idiomas ? '🌐 ' + p.idiomas : '';
-    if (p.bio) {
-      document.getElementById('cli-psico-bio').textContent = p.bio;
-      document.getElementById('cli-psico-bio-card').style.display = '';
-    }
+  if (data.bio) {
+    document.getElementById('cli-psico-bio').textContent = data.bio;
+    document.getElementById('cli-psico-bio-card').style.display = '';
   }
 
-  // Solicitudes previas del cliente
   await loadMisSolicitudes();
 }
 
 async function loadMisSolicitudes() {
-  const data = await api('/api/cambio-psicologo/pendientes');
+  const data = await api('/api/mis-solicitudes');
   if (!data) return;
-  const todas = (data.requests || []).filter(r => r.paciente_id === USER?.id);
+  const todas = data.solicitudes || [];
   const wrap = document.getElementById('cli-mis-solicitudes');
   const list = document.getElementById('cli-sol-list');
   if (!todas.length) { wrap.style.display = 'none'; return; }
@@ -1922,7 +1912,7 @@ let allPsicos = [];
 async function loadPsicologos() {
   const data = await api('/api/psicologos');
   if (!data) return;
-  allPsicos = data.psychologists || [];
+  allPsicos = data.psicologos || data.psychologists || [];
   renderPsicologos(allPsicos);
   updateBadgeSolicitudes();
 }
@@ -2002,7 +1992,7 @@ let allAsignaciones = [];
 async function loadAsignaciones() {
   const data = await api('/api/asignaciones/active');
   if (!data) return;
-  allAsignaciones = data.assignments || [];
+  allAsignaciones = data.asignaciones || data.assignments || [];
   renderAsignaciones(allAsignaciones);
 }
 
@@ -2073,7 +2063,7 @@ let solicitudFiltro = 'pendiente';
 async function loadSolicitudes() {
   const data = await api('/api/cambio-psicologo/pendientes');
   if (!data) return;
-  allSolicitudes = data.requests || [];
+  allSolicitudes = data.solicitudes || data.requests || [];
   updateBadgeSolicitudes();
   filterSolicitudes(solicitudFiltro);
 }
