@@ -5,6 +5,8 @@ CRM Clínico con embudo de ventas automatizado
 """
 import os
 import json
+import re
+import secrets
 from datetime import datetime, timedelta, date as date_type
 from typing import Optional, List
 from contextlib import asynccontextmanager
@@ -163,6 +165,16 @@ class Client(Base):
     updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AdminSetupToken(Base):
+    __tablename__ = "admin_setup_tokens"
+    id              = Column(Integer, primary_key=True, index=True)
+    psychologist_id = Column(Integer, ForeignKey("psychologists.id"), nullable=False)
+    token           = Column(String(128), unique=True, nullable=False, index=True)
+    expires_at      = Column(DateTime, nullable=False)
+    used_at         = Column(DateTime, nullable=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+
 class CourseModule(Base):
     __tablename__ = "courses_modules"
     id            = Column(Integer, primary_key=True, index=True)
@@ -267,6 +279,11 @@ class RegisterRequest(BaseModel):
     password: str
     name: str
     country: Optional[str] = None
+
+
+class SetPasswordRequest(BaseModel):
+    token: str
+    password: str
 
 
 class AdminUserCreate(BaseModel):
@@ -663,6 +680,111 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": {"id": client.id, "name": client.name, "email": client.email, "role": client.role}
     }
+
+
+# ============================================
+# SETUP / RECUPERACIÓN DE CONTRASEÑA DEL ADMIN
+# ============================================
+ADMIN_EMAIL = "psicoatrading@gmail.com"
+PASSWORD_UNSET = "!"  # placeholder: contraseña sin establecer
+
+def validate_password_strength(pw: str):
+    """Mínimo 12 caracteres, mayúscula, minúscula, número y símbolo."""
+    if len(pw) < 12:
+        return "La contraseña debe tener al menos 12 caracteres"
+    if not re.search(r"[A-Z]", pw):
+        return "Debe incluir al menos una mayúscula"
+    if not re.search(r"[a-z]", pw):
+        return "Debe incluir al menos una minúscula"
+    if not re.search(r"[0-9]", pw):
+        return "Debe incluir al menos un número"
+    if not re.search(r"[^A-Za-z0-9]", pw):
+        return "Debe incluir al menos un símbolo"
+    return None
+
+
+def _generate_admin_setup_token(db: Session, admin: "Psychologist") -> str:
+    """Crea y persiste un token de setup (24h) para un admin."""
+    token = secrets.token_urlsafe(32)
+    db.add(AdminSetupToken(
+        psychologist_id=admin.id,
+        token=token,
+        expires_at=datetime.utcnow() + timedelta(hours=24),
+    ))
+    db.commit()
+    return token
+
+
+@app.get("/api/auth/setup-status")
+def setup_status(db: Session = Depends(get_db)):
+    """Indica si el admin necesita configurar su contraseña."""
+    admin = db.query(Psychologist).filter(Psychologist.role == "admin").first()
+    needs = (admin is None) or (admin.password_hash in (None, "", PASSWORD_UNSET))
+    return {"needs_setup": needs}
+
+
+@app.post("/api/auth/setup-admin")
+def setup_admin(db: Session = Depends(get_db)):
+    """
+    Setup inicial del admin (una sola vez). Crea psicoatrading@gmail.com si
+    no existe y genera un link para establecer contraseña.
+    Si el admin YA tiene contraseña usable → 403 (no permitir reset público).
+    """
+    admin = db.query(Psychologist).filter(Psychologist.role == "admin").first()
+    if admin and admin.password_hash not in (None, "", PASSWORD_UNSET):
+        raise HTTPException(status_code=403, detail="El administrador ya está configurado")
+
+    if not admin:
+        admin = Psychologist(
+            name="Administrador", email=ADMIN_EMAIL, role="admin",
+            password_hash=PASSWORD_UNSET, is_active=True,
+        )
+        db.add(admin); db.flush()
+
+    token = _generate_admin_setup_token(db, admin)
+    setup_url = f"{FRONTEND_URL}/app/setup-password.html?token={token}"
+
+    if SENDGRID_API_KEY:
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+            SendGridAPIClient(SENDGRID_API_KEY).send(Mail(
+                from_email=(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
+                to_emails=admin.email,
+                subject="Configura tu contraseña de administrador · PsicoaTrading",
+                html_content=f"<p>Para establecer tu contraseña de administrador, abre este enlace (válido 24h):</p><p><a href='{setup_url}'>{setup_url}</a></p>",
+            ))
+            return {"sent": True, "email": admin.email}
+        except Exception as e:
+            print(f"setup-admin email error: {e}")
+    # Modo puente: sin proveedor de email configurado
+    return {"sent": False, "setup_url": setup_url,
+            "note": "Email no configurado. Usa este link (válido 24h) para establecer la contraseña."}
+
+
+@app.post("/api/auth/set-password")
+def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
+    """Establece la contraseña usando un token de setup válido."""
+    rec = db.query(AdminSetupToken).filter(AdminSetupToken.token == data.token).first()
+    if not rec:
+        raise HTTPException(status_code=400, detail="Token inválido")
+    if rec.used_at is not None:
+        raise HTTPException(status_code=400, detail="Este enlace ya fue usado")
+    if rec.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="El enlace expiró. Solicita uno nuevo.")
+
+    err = validate_password_strength(data.password)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+
+    admin = db.query(Psychologist).filter(Psychologist.id == rec.psychologist_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    admin.password_hash = pwd_context.hash(data.password)
+    rec.used_at = datetime.utcnow()
+    db.commit()
+    return {"success": True, "email": admin.email}
 
 
 @app.get("/api/dashboard/stats")

@@ -20,6 +20,8 @@ jobs:
             cp index.html /home/psicoatrading.online/public_html/index.html
             cp app/index.html /home/psicoatrading.online/public_html/app/index.html
             cp app/index.html /home/psicoatrading.online/app/index.html
+            cp app/setup-password.html /home/psicoatrading.online/public_html/app/setup-password.html
+            cp app/setup-password.html /home/psicoatrading.online/app/setup-password.html
             cp api/main.py /var/www/api/main.py
             cp api/schema.sql /var/www/api/schema.sql
             cp api/requirements.txt /var/www/api/requirements.txt
