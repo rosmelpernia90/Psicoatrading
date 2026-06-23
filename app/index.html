@@ -4,25 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PsicoaTrading — Panel Clínico</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#b8922a;--gold2:#d4a843;--gold-soft:#f6ead0;
-  --ink:#2c2820;--ink2:#6b6560;--ink3:#9c9690;
-  --bg:#f7f6f3;--bg2:#efeee9;--bg3:#e6e5e0;--white:#fff;--border:#e0ddd8;
-  --green:#2d8a5e;--green-bg:#e8f5ef;--blue:#1a6bb5;--blue-bg:#eaf2fb;
-  --amber:#b87a1a;--amber-bg:#fef3e0;--red:#c13628;--red-bg:#fbe9e6;
+  /* Marca turquesa (continuidad con la web pública) — reemplaza el dorado */
+  --gold:#54B7AC;--gold2:#6FD0C4;--gold-soft:rgba(84,183,172,.16);
+  /* Texto: blanco suave sobre oscuro */
+  --ink:#F4F6FA;--ink2:#A7B4C9;--ink3:#6B7A95;
+  /* Superficies oscuras sofisticadas (--white pasa a ser superficie elevada) */
+  --bg:#0B1426;--bg2:#0E1A30;--bg3:#1B2A44;--white:#152136;--border:rgba(148,170,205,.14);
+  /* Éxito/progreso = turquesa (nunca verde de "ganancia") */
+  --green:#54B7AC;--green-bg:rgba(84,183,172,.14);--blue:#6b8fd4;--blue-bg:rgba(107,143,212,.14);
+  /* Alerta clínica = ámbar cálido; "rojo" suavizado a arcilla (nunca rojo agresivo) */
+  --amber:#E0A458;--amber-bg:rgba(224,164,88,.14);--red:#c9756a;--red-bg:rgba(201,117,106,.16);
   --sidebar-w:240px;--header-h:64px;
-  --r:10px;--r2:8px;--sh:0 1px 3px rgba(0,0,0,.06),0 6px 16px rgba(0,0,0,.04);
+  --r:12px;--r2:9px;--sh:0 6px 20px rgba(0,0,0,.38),0 1px 2px rgba(0,0,0,.3);
 }
 html{height:100%}
-body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:var(--bg);min-height:100%;line-height:1.6}
-h1,h2,h3{font-family:'Playfair Display',serif;font-weight:600}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100%;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'IBM Plex Sans',sans-serif;font-weight:600;letter-spacing:-.015em}
 h1{font-size:1.6rem}h2{font-size:1.3rem}h3{font-size:1.1rem}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
+/* Neutraliza toda referencia serif (Playfair) inline o de clase → IBM Plex */
+[style*="Playfair"]{font-family:'IBM Plex Sans',sans-serif !important}
+.detail-name,.kpi-value,.dist-name{font-family:'IBM Plex Sans',sans-serif !important}
+/* Números/métricas en monoespaciada tabular */
+.kpi-value,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+/* Scrollbar oscuro */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#22344f;border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(148,170,205,.3);background-clip:padding-box}
+::selection{background:var(--gold-soft);color:var(--ink)}
 
 /* LOGIN */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg) 0%,var(--gold-soft) 100%)}
@@ -34,7 +49,7 @@ input,select,textarea{font-family:inherit}
 .login-field label{display:block;font-size:.78rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:5px}
 .login-field input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r2);font-size:.92rem;outline:none;transition:border .2s}
 .login-field input:focus{border-color:var(--gold)}
-.login-btn{width:100%;padding:13px;background:var(--gold);color:#fff;border:none;border-radius:var(--r2);font-size:.95rem;font-weight:600;transition:background .2s;margin-top:.5rem}
+.login-btn{width:100%;padding:13px;background:var(--gold);color:#06201d;border:none;border-radius:var(--r2);font-size:.95rem;font-weight:600;transition:background .2s;margin-top:.5rem;box-shadow:0 8px 28px rgba(84,183,172,.22)}
 .login-btn:hover{background:var(--gold2)}
 .login-err{color:var(--red);font-size:.85rem;margin-top:.5rem;text-align:center;min-height:1.2em}
 
@@ -67,7 +82,7 @@ input,select,textarea{font-family:inherit}
 
 /* SECTIONS */
 .section-title{font-size:.75rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 2px rgba(0,0,0,.25)}
 
 /* TABLE */
 .tbl-wrap{overflow-x:auto}
@@ -117,8 +132,8 @@ tr:hover td{background:var(--bg)}
 .form-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2);font-size:.9rem;outline:none;transition:border .2s;background:var(--white)}
 .form-input:focus{border-color:var(--gold)}
 textarea.form-input{min-height:90px;resize:vertical}
-.btn-gold{padding:10px 20px;background:var(--gold);color:#fff;border:none;border-radius:var(--r2);font-size:.88rem;font-weight:600;transition:background .2s}
-.btn-gold:hover{background:var(--gold2)}
+.btn-gold{padding:10px 20px;background:var(--gold);color:#06201d;border:none;border-radius:var(--r2);font-size:.88rem;font-weight:600;transition:all .2s;box-shadow:0 8px 28px rgba(84,183,172,.2)}
+.btn-gold:hover{background:var(--gold2);transform:translateY(-1px)}
 .btn-outline{padding:10px 20px;background:none;color:var(--ink2);border:1px solid var(--border);border-radius:var(--r2);font-size:.88rem;font-weight:500;transition:all .15s}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
 
