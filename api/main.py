@@ -175,6 +175,20 @@ class AdminSetupToken(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
 
+class PsicologoPaciente(Base):
+    __tablename__ = "psicologo_paciente"
+    id                   = Column(Integer, primary_key=True, index=True)
+    psicologo_id         = Column(Integer, ForeignKey("psychologists.id"), nullable=False)
+    paciente_id          = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    assigned_at          = Column(DateTime, default=datetime.utcnow)
+    assigned_by_admin_id = Column(Integer, ForeignKey("psychologists.id"), nullable=True)
+    is_active            = Column(Boolean, default=True)
+    ended_at             = Column(DateTime, nullable=True)
+    end_reason           = Column(Text, nullable=True)
+    # Nota: la columna generada `active_paciente` existe en la BD para el
+    # UNIQUE de "un psicólogo activo por paciente"; no se mapea aquí.
+
+
 class CourseModule(Base):
     __tablename__ = "courses_modules"
     id            = Column(Integer, primary_key=True, index=True)
@@ -984,6 +998,52 @@ def require_admin(payload: dict = Depends(verify_token)):
     return payload
 
 
+def require_psychologist_or_admin(payload: dict = Depends(verify_token)):
+    """Guard: rol admin o psychologist."""
+    if payload.get("role") not in ("admin", "psychologist"):
+        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
+    return payload
+
+
+def get_current_psychologist(payload: dict, db: Session):
+    """Devuelve el registro Psychologist del token (admin o psychologist)."""
+    psych = db.query(Psychologist).filter(Psychologist.email == payload["sub"]).first()
+    if not psych:
+        raise HTTPException(status_code=403, detail="Profesional no encontrado")
+    return psych
+
+
+def get_assigned_client_ids(db: Session, psicologo_id: int) -> set:
+    """IDs de clientes actualmente asignados a un psicólogo (is_active=TRUE)."""
+    rows = db.query(PsicologoPaciente.paciente_id).filter(
+        PsicologoPaciente.psicologo_id == psicologo_id,
+        PsicologoPaciente.is_active == True,
+    ).all()
+    return {r[0] for r in rows}
+
+
+def assert_can_access_client(payload: dict, client_id: int, db: Session):
+    """
+    REGLA CRÍTICA: admin ve todo; un psicólogo SOLO puede acceder a un
+    paciente asignado a él (validado contra psicologo_paciente en la BD,
+    no contra el JWT). Cualquier otro caso → 403.
+    """
+    role = payload.get("role")
+    if role == "admin":
+        return
+    if role == "psychologist":
+        psych = get_current_psychologist(payload, db)
+        link = db.query(PsicologoPaciente).filter(
+            PsicologoPaciente.psicologo_id == psych.id,
+            PsicologoPaciente.paciente_id == client_id,
+            PsicologoPaciente.is_active == True,
+        ).first()
+        if not link:
+            raise HTTPException(status_code=403, detail="Este paciente no está asignado a ti")
+        return
+    raise HTTPException(status_code=403, detail="No autorizado")
+
+
 VALID_ROLES = {"admin", "psychologist", "cliente"}
 
 
@@ -1306,14 +1366,19 @@ def course_complete_module(module_id: int, data: CompleteModuleRequest,
 
 @app.get("/api/course/progress")
 def course_progress_overview(client_id: Optional[int] = None,
-                             payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
-    # Solo psicólogos/admins
-    if payload.get("role") not in ("admin", "psychologist"):
-        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
-
+                             payload: dict = Depends(require_psychologist_or_admin), db: Session = Depends(get_db)):
     clients_q = db.query(Client)
     if client_id is not None:
+        # REGLA CRÍTICA: si pide un cliente puntual, validar acceso
+        assert_can_access_client(payload, client_id, db)
         clients_q = clients_q.filter(Client.id == client_id)
+    elif payload.get("role") == "psychologist":
+        # Un psicólogo (sin client_id) solo ve a SUS pacientes asignados
+        psych = get_current_psychologist(payload, db)
+        assigned = get_assigned_client_ids(db, psych.id)
+        if not assigned:
+            return {"progress": []}
+        clients_q = clients_q.filter(Client.id.in_(assigned))
     clients = clients_q.all()
 
     total_modules = db.query(func.count(CourseModule.id)).scalar() or 0
@@ -1474,10 +1539,10 @@ def diary_update_entry(entry_id: int, data: DiaryEntryUpdate,
 
 
 @app.get("/api/diary/client/{client_id}")
-def diary_psychologist_view(client_id: int, payload: dict = Depends(verify_token),
+def diary_psychologist_view(client_id: int, payload: dict = Depends(require_psychologist_or_admin),
                              db: Session = Depends(get_db)):
-    if payload.get("role") not in ("admin", "psychologist"):
-        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
+    # REGLA CRÍTICA: el psicólogo solo ve pacientes asignados; admin ve todo
+    assert_can_access_client(payload, client_id, db)
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
