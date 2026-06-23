@@ -413,6 +413,87 @@ textarea.form-input{min-height:90px;resize:vertical}
   </main>
 </div>
 
+<!-- ===== MODAL CAMBIO PSICÓLOGO (cliente, 3 pasos) ===== -->
+<div id="cambio-psico-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.75);z-index:300;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:var(--sh)">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <div>
+        <h2 style="font-size:1.15rem">Solicitar cambio de psicólogo</h2>
+        <div id="cambio-step-label" style="font-size:.75rem;color:var(--ink3);margin-top:2px">Paso 1 de 3</div>
+      </div>
+      <button onclick="closeCambioPsicoModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
+    </div>
+    <!-- Indicador de pasos -->
+    <div style="display:flex;gap:6px;margin-bottom:1.75rem">
+      <div id="cs-dot-1" style="flex:1;height:3px;border-radius:3px;background:var(--gold);transition:.3s"></div>
+      <div id="cs-dot-2" style="flex:1;height:3px;border-radius:3px;background:var(--border);transition:.3s"></div>
+      <div id="cs-dot-3" style="flex:1;height:3px;border-radius:3px;background:var(--border);transition:.3s"></div>
+    </div>
+
+    <!-- PASO 1: Motivo principal -->
+    <div id="cambio-step-1">
+      <p style="font-size:.9rem;color:var(--ink2);margin-bottom:1.25rem">¿Cuál es el motivo principal para solicitar un cambio?</p>
+      <div id="cambio-motivos" style="display:flex;flex-direction:column;gap:8px">
+        <label id="mot-no_conecto" onclick="selectMotivo('no_conecto')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:.15s">
+          <input type="radio" name="motivo" value="no_conecto" style="accent-color:var(--gold)">
+          <span style="font-size:.9rem;color:var(--ink2)">No conecté con mi psicólogo</span>
+        </label>
+        <label id="mot-horarios" onclick="selectMotivo('horarios')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:.15s">
+          <input type="radio" name="motivo" value="horarios" style="accent-color:var(--gold)">
+          <span style="font-size:.9rem;color:var(--ink2)">Incompatibilidad de horarios</span>
+        </label>
+        <label id="mot-enfoque" onclick="selectMotivo('enfoque')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:.15s">
+          <input type="radio" name="motivo" value="enfoque" style="accent-color:var(--gold)">
+          <span style="font-size:.9rem;color:var(--ink2)">Diferente enfoque terapéutico esperado</span>
+        </label>
+        <label id="mot-personal" onclick="selectMotivo('personal')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:.15s">
+          <input type="radio" name="motivo" value="personal" style="accent-color:var(--gold)">
+          <span style="font-size:.9rem;color:var(--ink2)">Razones personales</span>
+        </label>
+        <label id="mot-otro" onclick="selectMotivo('otro')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:.15s">
+          <input type="radio" name="motivo" value="otro" style="accent-color:var(--gold)">
+          <span style="font-size:.9rem;color:var(--ink2)">Otro motivo</span>
+        </label>
+      </div>
+      <div style="margin-top:1.5rem;display:flex;justify-content:flex-end">
+        <button onclick="cambioNext(2)" class="btn-gold" id="cambio-btn-1" disabled style="opacity:.5">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- PASO 2: Detalle -->
+    <div id="cambio-step-2" style="display:none">
+      <p style="font-size:.9rem;color:var(--ink2);margin-bottom:1rem">Cuéntanos un poco más <span style="color:var(--ink3)">(opcional)</span></p>
+      <textarea id="cambio-texto" rows="4" placeholder="Escribe cualquier detalle adicional que quieras compartir con el equipo clínico..." style="width:100%;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);color:var(--ink);font-family:inherit;font-size:.9rem;outline:none;resize:vertical;line-height:1.6"></textarea>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-top:1rem;cursor:pointer">
+        <input type="checkbox" id="cambio-compartir" style="margin-top:2px;accent-color:var(--gold)">
+        <span style="font-size:.85rem;color:var(--ink2);line-height:1.5">Acepto que el motivo de mi solicitud sea compartido con el nuevo psicólogo asignado.</span>
+      </label>
+      <div style="margin-top:1.5rem;display:flex;justify-content:space-between">
+        <button onclick="cambioNext(1)" style="background:none;border:1px solid var(--border);border-radius:var(--r2);padding:10px 18px;font-family:inherit;font-size:.88rem;color:var(--ink3);cursor:pointer">← Atrás</button>
+        <button onclick="cambioNext(3)" class="btn-gold">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: Confirmar -->
+    <div id="cambio-step-3" style="display:none">
+      <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r2);padding:1rem;margin-bottom:1.25rem">
+        <div style="font-size:.85rem;color:var(--amber);font-weight:600;margin-bottom:.4rem">⚠ Antes de confirmar</div>
+        <p style="font-size:.85rem;color:var(--ink2);line-height:1.6">Tu solicitud será revisada por el equipo clínico. El cambio no es inmediato — recibirás confirmación cuando un nuevo psicólogo sea asignado.</p>
+      </div>
+      <div class="card" style="background:var(--bg);font-size:.88rem">
+        <div style="margin-bottom:.5rem"><span style="color:var(--ink3)">Motivo:</span> <span id="cambio-resumen-motivo" style="color:var(--ink);font-weight:600"></span></div>
+        <div id="cambio-resumen-texto-wrap"><span style="color:var(--ink3)">Detalle:</span> <span id="cambio-resumen-texto" style="color:var(--ink2)"></span></div>
+      </div>
+      <div id="cambio-err" style="font-size:.85rem;color:var(--red);margin-top:.75rem;min-height:1.2em"></div>
+      <div style="margin-top:1.5rem;display:flex;justify-content:space-between">
+        <button onclick="cambioNext(2)" style="background:none;border:1px solid var(--border);border-radius:var(--r2);padding:10px 18px;font-family:inherit;font-size:.88rem;color:var(--ink3);cursor:pointer">← Atrás</button>
+        <button onclick="enviarCambioPsico()" class="btn-gold" id="cambio-send-btn">Enviar solicitud</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL PERFIL PSICÓLOGO ===== -->
 <div id="psico-profile-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.7);z-index:200;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:var(--sh);max-height:90vh;overflow-y:auto">
@@ -521,6 +602,9 @@ textarea.form-input{min-height:90px;resize:vertical}
       style="padding:12px 20px;background:none;border:none;border-bottom:2px solid transparent;font-family:inherit;font-size:.88rem;font-weight:500;color:var(--ink2);cursor:pointer">
       📖 Diario
     </button>
+    <button id="cli-nav-psico" onclick="clientShowSection('psico')" style="display:none;padding:12px 20px;background:none;border:none;border-bottom:2px solid transparent;font-family:inherit;font-size:.88rem;font-weight:500;color:var(--ink2);cursor:pointer">
+      🧠 Mi Psicólogo
+    </button>
   </nav>
 
   <main style="max-width:1040px;margin:0 auto;padding:2rem;width:100%">
@@ -536,6 +620,51 @@ textarea.form-input{min-height:90px;resize:vertical}
       <div id="cli-view-module" style="display:none">
         <button class="btn-outline" style="margin-bottom:1rem" onclick="backToCourse()">← Volver al curso</button>
         <div id="mod-detail"><div class="loading">Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN MI PSICÓLOGO -->
+    <div id="cli-section-psico" style="display:none">
+      <h1 style="margin-bottom:1.5rem">Mi Psicólogo</h1>
+      <!-- Estado: sin psicólogo asignado -->
+      <div id="cli-psico-none" style="display:none">
+        <div class="card" style="text-align:center;padding:3rem 2rem">
+          <div style="font-size:3rem;margin-bottom:1rem">🧠</div>
+          <h2 style="font-size:1.1rem;margin-bottom:.5rem">Aún no tienes psicólogo asignado</h2>
+          <p style="color:var(--ink3);font-size:.9rem;max-width:40ch;margin:0 auto">
+            Tu plan actual no incluye sesiones de psicología clínica, o aún estamos asignando tu psicólogo.<br>
+            Si tienes dudas, contacta a soporte.
+          </p>
+        </div>
+      </div>
+      <!-- Estado: psicólogo asignado -->
+      <div id="cli-psico-card" style="display:none">
+        <div class="card" style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div style="width:64px;height:64px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0">🧑‍⚕️</div>
+          <div style="flex:1">
+            <div id="cli-psico-name" style="font-size:1.15rem;font-weight:600;color:var(--ink);margin-bottom:2px"></div>
+            <div id="cli-psico-especialidad" style="font-size:.85rem;color:var(--ink3);margin-bottom:4px"></div>
+            <div id="cli-psico-idiomas" style="font-size:.8rem;color:var(--ink3)"></div>
+          </div>
+          <div>
+            <div style="font-size:.7rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px">Asignado desde</div>
+            <div id="cli-psico-desde" style="font-size:.9rem;color:var(--ink2)"></div>
+          </div>
+        </div>
+        <div id="cli-psico-bio-card" class="card" style="display:none">
+          <div class="section-title">Sobre tu psicólogo</div>
+          <p id="cli-psico-bio" style="color:var(--ink2);font-size:.9rem;line-height:1.7"></p>
+        </div>
+        <div style="margin-top:1.25rem">
+          <button onclick="openCambioPsicoModal()" style="background:none;border:1px solid var(--border);border-radius:var(--r2);padding:10px 20px;font-family:inherit;font-size:.88rem;color:var(--ink3);cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink3)'">
+            Solicitar cambio de psicólogo
+          </button>
+        </div>
+        <!-- Solicitudes previas -->
+        <div id="cli-mis-solicitudes" style="margin-top:1.5rem;display:none">
+          <div class="section-title">Mis solicitudes de cambio</div>
+          <div id="cli-sol-list"></div>
+        </div>
       </div>
     </div>
 
@@ -724,6 +853,7 @@ function enterApp() {
     document.getElementById('app-view').classList.remove('active');
     document.getElementById('app-cliente').style.display = 'flex';
     document.getElementById('cliente-name').textContent = USER?.name || USER?.email || '';
+    document.getElementById('cli-nav-psico').style.display = '';
     clientShowSection('course');
     loadCourse();
   }
@@ -1289,15 +1419,22 @@ let scoreValue = null;
 function clientShowSection(sec) {
   document.getElementById('cli-section-course').style.display = sec === 'course' ? '' : 'none';
   document.getElementById('cli-section-diary').style.display  = sec === 'diary'  ? '' : 'none';
-  const nc = document.getElementById('cli-nav-course');
-  const nd = document.getElementById('cli-nav-diary');
-  nc.style.borderBottomColor = sec === 'course' ? 'var(--gold)' : 'transparent';
-  nc.style.color = sec === 'course' ? 'var(--gold)' : 'var(--ink2)';
-  nc.style.fontWeight = sec === 'course' ? '600' : '500';
-  nd.style.borderBottomColor = sec === 'diary' ? 'var(--gold)' : 'transparent';
-  nd.style.color = sec === 'diary' ? 'var(--gold)' : 'var(--ink2)';
-  nd.style.fontWeight = sec === 'diary' ? '600' : '500';
+  document.getElementById('cli-section-psico').style.display  = sec === 'psico'  ? '' : 'none';
+  const tabs = [
+    { id: 'cli-nav-course', key: 'course' },
+    { id: 'cli-nav-diary',  key: 'diary'  },
+    { id: 'cli-nav-psico',  key: 'psico'  }
+  ];
+  tabs.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const active = sec === key;
+    el.style.borderBottomColor = active ? 'var(--gold)' : 'transparent';
+    el.style.color      = active ? 'var(--gold)' : 'var(--ink2)';
+    el.style.fontWeight = active ? '600' : '500';
+  });
   if (sec === 'diary') initDiary();
+  if (sec === 'psico') initClientePsico();
 }
 
 async function initDiary() {
@@ -1642,6 +1779,139 @@ async function loadCourseProgress() {
     <td style="color:var(--ink2);font-size:.82rem">${c.quiz_scores.length ? c.quiz_scores.map(q => 'M'+q.module_id+':'+q.score).join(' · ') : '—'}</td>
     <td style="color:var(--ink3)">${c.last_activity ? new Date(c.last_activity).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
+}
+
+// ============================================================
+// MI PSICÓLOGO — Portal cliente (Fase 5E)
+// ============================================================
+let cambioMotivoSel = null;
+
+async function initClientePsico() {
+  const data = await api('/api/asignaciones/active');
+  if (!data) return;
+  // Buscar la asignación del cliente actual
+  const asigs = data.assignments || [];
+  const mia = asigs.find(a => a.paciente_id === USER?.id);
+
+  if (!mia) {
+    document.getElementById('cli-psico-none').style.display = '';
+    document.getElementById('cli-psico-card').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('cli-psico-none').style.display = 'none';
+  document.getElementById('cli-psico-card').style.display = '';
+
+  document.getElementById('cli-psico-name').textContent = mia.psicologo_name || '—';
+  document.getElementById('cli-psico-desde').textContent = mia.assigned_at
+    ? new Date(mia.assigned_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
+    : '—';
+
+  // Cargar perfil del psicólogo para bio/especialidad
+  const prof = await api('/api/psicologos/' + mia.psicologo_id + '/load');
+  if (prof?.profile) {
+    const p = prof.profile;
+    document.getElementById('cli-psico-especialidad').textContent = p.especialidad || '';
+    document.getElementById('cli-psico-idiomas').textContent = p.idiomas ? '🌐 ' + p.idiomas : '';
+    if (p.bio) {
+      document.getElementById('cli-psico-bio').textContent = p.bio;
+      document.getElementById('cli-psico-bio-card').style.display = '';
+    }
+  }
+
+  // Solicitudes previas del cliente
+  await loadMisSolicitudes();
+}
+
+async function loadMisSolicitudes() {
+  const data = await api('/api/cambio-psicologo/pendientes');
+  if (!data) return;
+  const todas = (data.requests || []).filter(r => r.paciente_id === USER?.id);
+  const wrap = document.getElementById('cli-mis-solicitudes');
+  const list = document.getElementById('cli-sol-list');
+  if (!todas.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const pillMap = { pendiente:'pill-amber', aprobada:'pill-green', rechazada:'pill-red' };
+  list.innerHTML = todas.map(s => `
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;padding:.9rem 1.1rem">
+      <div>
+        <div style="font-size:.88rem;color:var(--ink2)">${MOTIVOS[s.reason_category] || s.reason_category}</div>
+        <div style="font-size:.78rem;color:var(--ink3)">${s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : ''}</div>
+      </div>
+      <span class="pill ${pillMap[s.status]}">${s.status}</span>
+    </div>`).join('');
+}
+
+function openCambioPsicoModal() {
+  cambioMotivoSel = null;
+  document.getElementById('cambio-texto').value = '';
+  document.getElementById('cambio-compartir').checked = false;
+  document.getElementById('cambio-err').textContent = '';
+  // Reset radio buttons
+  document.querySelectorAll('#cambio-motivos input[type=radio]').forEach(r => r.checked = false);
+  document.querySelectorAll('#cambio-motivos label').forEach(l => {
+    l.style.borderColor = 'var(--border)'; l.style.background = 'none';
+  });
+  document.getElementById('cambio-btn-1').disabled = true;
+  document.getElementById('cambio-btn-1').style.opacity = '.5';
+  cambioNext(1);
+  document.getElementById('cambio-psico-modal').style.display = 'flex';
+}
+
+function closeCambioPsicoModal() {
+  document.getElementById('cambio-psico-modal').style.display = 'none';
+}
+
+function selectMotivo(val) {
+  cambioMotivoSel = val;
+  document.querySelectorAll('#cambio-motivos label').forEach(l => {
+    const isThis = l.id === 'mot-' + val;
+    l.style.borderColor = isThis ? 'var(--gold)' : 'var(--border)';
+    l.style.background  = isThis ? 'var(--gold-soft)' : 'none';
+  });
+  const btn = document.getElementById('cambio-btn-1');
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+function cambioNext(step) {
+  [1,2,3].forEach(n => {
+    document.getElementById('cambio-step-' + n).style.display = n === step ? '' : 'none';
+    document.getElementById('cs-dot-' + n).style.background = n <= step ? 'var(--gold)' : 'var(--border)';
+  });
+  document.getElementById('cambio-step-label').textContent = `Paso ${step} de 3`;
+  if (step === 3) {
+    const labelMap = { no_conecto:'No conecté con mi psicólogo', horarios:'Incompatibilidad de horarios', enfoque:'Diferente enfoque', personal:'Razones personales', otro:'Otro motivo' };
+    document.getElementById('cambio-resumen-motivo').textContent = labelMap[cambioMotivoSel] || cambioMotivoSel;
+    const txt = document.getElementById('cambio-texto').value.trim();
+    const wrap = document.getElementById('cambio-resumen-texto-wrap');
+    if (txt) { document.getElementById('cambio-resumen-texto').textContent = txt; wrap.style.display = ''; }
+    else { wrap.style.display = 'none'; }
+  }
+}
+
+async function enviarCambioPsico() {
+  const btn = document.getElementById('cambio-send-btn');
+  const err = document.getElementById('cambio-err');
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const body = {
+    reason_category: cambioMotivoSel,
+    reason_text: document.getElementById('cambio-texto').value.trim() || null,
+    share_reason_with_new: document.getElementById('cambio-compartir').checked
+  };
+  const res = await api('/api/cambio-psicologo', { method:'POST', body: JSON.stringify(body) });
+  btn.disabled = false; btn.textContent = 'Enviar solicitud';
+  if (!res) { err.textContent = 'No se pudo enviar. ¿Ya tienes una solicitud pendiente?'; return; }
+  closeCambioPsicoModal();
+  // Mostrar confirmación breve
+  const card = document.getElementById('cli-psico-card');
+  const conf = document.createElement('div');
+  conf.className = 'card';
+  conf.style.cssText = 'border-color:var(--green);background:var(--green-bg);margin-bottom:1rem;font-size:.9rem;color:var(--green);font-weight:600';
+  conf.textContent = '✓ Solicitud enviada. El equipo clínico la revisará pronto.';
+  card.insertBefore(conf, card.firstChild);
+  setTimeout(() => conf.remove(), 5000);
+  loadMisSolicitudes();
 }
 
 // ============================================================
