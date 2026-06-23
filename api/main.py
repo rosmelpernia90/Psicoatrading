@@ -189,6 +189,34 @@ class PsicologoPaciente(Base):
     # UNIQUE de "un psicólogo activo por paciente"; no se mapea aquí.
 
 
+class PsicologoProfile(Base):
+    __tablename__ = "psicologos_profile"
+    psychologist_id     = Column(Integer, ForeignKey("psychologists.id"), primary_key=True)
+    bio                 = Column(Text, nullable=True)
+    especialidad        = Column(String(255), nullable=True)
+    idiomas             = Column(String(255), nullable=True)
+    max_pacientes       = Column(Integer, default=20)
+    tarjeta_profesional = Column(String(100), nullable=True)
+    esta_disponible     = Column(Boolean, default=True)
+    created_at          = Column(DateTime, default=datetime.utcnow)
+    updated_at          = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CambioPsicologoRequest(Base):
+    __tablename__ = "cambio_psicologo_requests"
+    id                    = Column(Integer, primary_key=True, index=True)
+    paciente_id           = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    current_psicologo_id  = Column(Integer, ForeignKey("psychologists.id"), nullable=True)
+    reason_category       = Column(String(50), nullable=False)
+    reason_text           = Column(Text, nullable=True)
+    share_reason_with_new = Column(Boolean, default=False)
+    status                = Column(SAEnum("pendiente", "aprobada", "rechazada"), default="pendiente")
+    resolved_by_admin_id  = Column(Integer, ForeignKey("psychologists.id"), nullable=True)
+    resolved_at           = Column(DateTime, nullable=True)
+    admin_notes           = Column(Text, nullable=True)
+    created_at            = Column(DateTime, default=datetime.utcnow)
+
+
 class CourseModule(Base):
     __tablename__ = "courses_modules"
     id            = Column(Integer, primary_key=True, index=True)
@@ -298,6 +326,40 @@ class RegisterRequest(BaseModel):
 class SetPasswordRequest(BaseModel):
     token: str
     password: str
+
+
+class PsicologoProfileIn(BaseModel):
+    bio: Optional[str] = None
+    especialidad: Optional[str] = None
+    idiomas: Optional[str] = None
+    max_pacientes: Optional[int] = None
+    tarjeta_profesional: Optional[str] = None
+    esta_disponible: Optional[bool] = None
+
+
+class AsignacionIn(BaseModel):
+    paciente_id: int
+    psicologo_id: int
+    notes: Optional[str] = None
+
+
+class EndAsignacionIn(BaseModel):
+    end_reason: Optional[str] = None
+
+
+class CambioRequestIn(BaseModel):
+    reason_category: str
+    reason_text: Optional[str] = None
+    share_reason_with_new: bool = False
+
+
+class AprobarCambioIn(BaseModel):
+    nuevo_psicologo_id: int
+    admin_notes: Optional[str] = None
+
+
+class RechazarCambioIn(BaseModel):
+    admin_notes: Optional[str] = None
 
 
 class AdminUserCreate(BaseModel):
@@ -1042,6 +1104,268 @@ def assert_can_access_client(payload: dict, client_id: int, db: Session):
             raise HTTPException(status_code=403, detail="Este paciente no está asignado a ti")
         return
     raise HTTPException(status_code=403, detail="No autorizado")
+
+
+# ============================================
+# PSICÓLOGOS (perfil + carga)
+# ============================================
+def _psico_active_load(db: Session, psicologo_id: int) -> int:
+    return db.query(func.count(PsicologoPaciente.id)).filter(
+        PsicologoPaciente.psicologo_id == psicologo_id,
+        PsicologoPaciente.is_active == True,
+    ).scalar() or 0
+
+
+def _psico_to_dict(db: Session, p: "Psychologist") -> dict:
+    prof = db.query(PsicologoProfile).filter(PsicologoProfile.psychologist_id == p.id).first()
+    load = _psico_active_load(db, p.id)
+    max_p = prof.max_pacientes if prof and prof.max_pacientes is not None else 20
+    return {
+        "id": p.id, "name": p.name, "email": p.email, "is_active": bool(p.is_active),
+        "bio": prof.bio if prof else None,
+        "especialidad": prof.especialidad if prof else None,
+        "idiomas": prof.idiomas if prof else None,
+        "max_pacientes": max_p,
+        "tarjeta_profesional": prof.tarjeta_profesional if prof else None,
+        "esta_disponible": bool(prof.esta_disponible) if prof else True,
+        "current_load": load,
+        "slots_available": max(0, max_p - load),
+    }
+
+
+@app.get("/api/psicologos")
+def list_psicologos(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    """Admin ve todos; cliente ve solo el suyo asignado; psicólogo se ve a sí mismo."""
+    role = payload.get("role")
+    if role == "admin":
+        psicos = db.query(Psychologist).filter(Psychologist.role == "psychologist").all()
+    elif role == "psychologist":
+        psicos = [get_current_psychologist(payload, db)]
+    elif role == "cliente":
+        client = get_current_client(payload, db)
+        link = db.query(PsicologoPaciente).filter(
+            PsicologoPaciente.paciente_id == client.id,
+            PsicologoPaciente.is_active == True,
+        ).first()
+        psicos = []
+        if link:
+            ps = db.query(Psychologist).filter(Psychologist.id == link.psicologo_id).first()
+            if ps:
+                psicos = [ps]
+    else:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    return {"psicologos": [_psico_to_dict(db, p) for p in psicos]}
+
+
+@app.post("/api/psicologos/{psicologo_id}/profile")
+def upsert_psicologo_profile(psicologo_id: int, data: PsicologoProfileIn,
+                             payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    psico = db.query(Psychologist).filter(Psychologist.id == psicologo_id).first()
+    if not psico:
+        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
+    prof = db.query(PsicologoProfile).filter(PsicologoProfile.psychologist_id == psicologo_id).first()
+    if not prof:
+        prof = PsicologoProfile(psychologist_id=psicologo_id)
+        db.add(prof)
+    for field in ("bio", "especialidad", "idiomas", "max_pacientes", "tarjeta_profesional", "esta_disponible"):
+        val = getattr(data, field)
+        if val is not None:
+            setattr(prof, field, val)
+    db.commit()
+    return {"success": True}
+
+
+@app.get("/api/psicologos/{psicologo_id}/load")
+def psicologo_load(psicologo_id: int, payload: dict = Depends(require_psychologist_or_admin),
+                   db: Session = Depends(get_db)):
+    # Un psicólogo solo puede consultar su propia carga; admin cualquiera
+    if payload.get("role") == "psychologist":
+        me = get_current_psychologist(payload, db)
+        if me.id != psicologo_id:
+            raise HTTPException(status_code=403, detail="Solo puedes ver tu propia carga")
+    psico = db.query(Psychologist).filter(Psychologist.id == psicologo_id).first()
+    if not psico:
+        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
+    return _psico_to_dict(db, psico)
+
+
+# ============================================
+# ASIGNACIONES CLIENTE ↔ PSICÓLOGO (solo admin)
+# ============================================
+def _assignment_to_dict(db: Session, a: "PsicologoPaciente") -> dict:
+    pac = db.query(Client).filter(Client.id == a.paciente_id).first()
+    psi = db.query(Psychologist).filter(Psychologist.id == a.psicologo_id).first()
+    return {
+        "id": a.id,
+        "paciente_id": a.paciente_id,
+        "paciente_name": pac.name if pac else None,
+        "paciente_email": pac.email if pac else None,
+        "psicologo_id": a.psicologo_id,
+        "psicologo_name": psi.name if psi else None,
+        "is_active": bool(a.is_active),
+        "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
+        "ended_at": a.ended_at.isoformat() if a.ended_at else None,
+    }
+
+
+@app.post("/api/asignaciones", status_code=201)
+def crear_asignacion(data: AsignacionIn, payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    pac = db.query(Client).filter(Client.id == data.paciente_id).first()
+    if not pac:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    psi = db.query(Psychologist).filter(Psychologist.id == data.psicologo_id,
+                                        Psychologist.role == "psychologist").first()
+    if not psi:
+        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
+    # Regla: un psicólogo activo por paciente a la vez
+    existing = db.query(PsicologoPaciente).filter(
+        PsicologoPaciente.paciente_id == data.paciente_id,
+        PsicologoPaciente.is_active == True,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409,
+            detail="Este cliente ya tiene un psicólogo activo. Finaliza la asignación actual primero o usa una solicitud de cambio.")
+    admin = get_current_psychologist(payload, db)
+    a = PsicologoPaciente(
+        psicologo_id=data.psicologo_id, paciente_id=data.paciente_id,
+        assigned_by_admin_id=admin.id, is_active=True, end_reason=data.notes,
+    )
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    print(f"[AUDIT] Asignación creada: paciente={data.paciente_id} psicologo={data.psicologo_id} por admin={admin.id}")
+    return {"success": True, "assignment_id": a.id}
+
+
+@app.get("/api/asignaciones/active")
+def asignaciones_activas(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    rows = db.query(PsicologoPaciente).filter(PsicologoPaciente.is_active == True).all()
+    return {"asignaciones": [_assignment_to_dict(db, a) for a in rows]}
+
+
+@app.patch("/api/asignaciones/{assignment_id}/end")
+def finalizar_asignacion(assignment_id: int, data: EndAsignacionIn,
+                         payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    a = db.query(PsicologoPaciente).filter(PsicologoPaciente.id == assignment_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    a.is_active = False
+    a.ended_at = datetime.utcnow()
+    if data.end_reason:
+        a.end_reason = data.end_reason
+    db.commit()
+    print(f"[AUDIT] Asignación {assignment_id} finalizada por admin")
+    return {"success": True}
+
+
+# ============================================
+# SOLICITUDES DE CAMBIO DE PSICÓLOGO
+# ============================================
+@app.post("/api/cambio-psicologo", status_code=201)
+def solicitar_cambio(data: CambioRequestIn, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    if payload.get("role") != "cliente":
+        raise HTTPException(status_code=403, detail="Solo los clientes pueden solicitar cambio")
+    client = get_current_client(payload, db)
+    link = db.query(PsicologoPaciente).filter(
+        PsicologoPaciente.paciente_id == client.id, PsicologoPaciente.is_active == True,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=400, detail="No tienes un psicólogo asignado actualmente")
+    # Evitar solicitudes duplicadas pendientes
+    pend = db.query(CambioPsicologoRequest).filter(
+        CambioPsicologoRequest.paciente_id == client.id,
+        CambioPsicologoRequest.status == "pendiente",
+    ).first()
+    if pend:
+        raise HTTPException(status_code=409, detail="Ya tienes una solicitud de cambio pendiente")
+    req = CambioPsicologoRequest(
+        paciente_id=client.id,
+        current_psicologo_id=link.psicologo_id,
+        reason_category=data.reason_category,
+        reason_text=data.reason_text,
+        share_reason_with_new=data.share_reason_with_new,
+        status="pendiente",
+    )
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    print(f"[AUDIT] Solicitud de cambio creada: paciente={client.id} req={req.id}")
+    return {"success": True, "request_id": req.id}
+
+
+@app.get("/api/cambio-psicologo/pendientes")
+def cambios_pendientes(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    rows = db.query(CambioPsicologoRequest).filter(
+        CambioPsicologoRequest.status == "pendiente",
+    ).order_by(CambioPsicologoRequest.created_at.desc()).all()
+    out = []
+    for r in rows:
+        pac = db.query(Client).filter(Client.id == r.paciente_id).first()
+        cur = db.query(Psychologist).filter(Psychologist.id == r.current_psicologo_id).first()
+        out.append({
+            "id": r.id, "paciente_id": r.paciente_id,
+            "paciente_name": pac.name if pac else None,
+            "current_psicologo_id": r.current_psicologo_id,
+            "current_psicologo_name": cur.name if cur else None,
+            "reason_category": r.reason_category,
+            "reason_text": r.reason_text if r.share_reason_with_new else None,
+            "shared": bool(r.share_reason_with_new),
+            "reason_text_admin": r.reason_text,  # admin siempre lo ve
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+    return {"solicitudes": out}
+
+
+@app.post("/api/cambio-psicologo/{req_id}/aprobar")
+def aprobar_cambio(req_id: int, data: AprobarCambioIn,
+                   payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    req = db.query(CambioPsicologoRequest).filter(CambioPsicologoRequest.id == req_id).first()
+    if not req or req.status != "pendiente":
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada o ya resuelta")
+    nuevo = db.query(Psychologist).filter(Psychologist.id == data.nuevo_psicologo_id,
+                                          Psychologist.role == "psychologist").first()
+    if not nuevo:
+        raise HTTPException(status_code=404, detail="Nuevo psicólogo no encontrado")
+    admin = get_current_psychologist(payload, db)
+    # 1) Finalizar asignación activa actual del paciente
+    actual = db.query(PsicologoPaciente).filter(
+        PsicologoPaciente.paciente_id == req.paciente_id, PsicologoPaciente.is_active == True,
+    ).first()
+    if actual:
+        actual.is_active = False
+        actual.ended_at = datetime.utcnow()
+        actual.end_reason = f"Cambio aprobado (solicitud #{req.id})"
+        db.flush()  # liberar el UNIQUE de active_paciente antes de insertar
+    # 2) Crear nueva asignación
+    nueva = PsicologoPaciente(
+        psicologo_id=nuevo.id, paciente_id=req.paciente_id,
+        assigned_by_admin_id=admin.id, is_active=True,
+    )
+    db.add(nueva)
+    # 3) Resolver la solicitud
+    req.status = "aprobada"
+    req.resolved_by_admin_id = admin.id
+    req.resolved_at = datetime.utcnow()
+    req.admin_notes = data.admin_notes
+    db.commit()
+    print(f"[AUDIT] Cambio aprobado req={req.id} paciente={req.paciente_id} nuevo_psico={nuevo.id} admin={admin.id}")
+    return {"success": True}
+
+
+@app.post("/api/cambio-psicologo/{req_id}/rechazar")
+def rechazar_cambio(req_id: int, data: RechazarCambioIn,
+                    payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
+    req = db.query(CambioPsicologoRequest).filter(CambioPsicologoRequest.id == req_id).first()
+    if not req or req.status != "pendiente":
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada o ya resuelta")
+    admin = get_current_psychologist(payload, db)
+    req.status = "rechazada"
+    req.resolved_by_admin_id = admin.id
+    req.resolved_at = datetime.utcnow()
+    req.admin_notes = data.admin_notes
+    db.commit()
+    print(f"[AUDIT] Cambio rechazado req={req.id} admin={admin.id}")
+    return {"success": True}
 
 
 VALID_ROLES = {"admin", "psychologist", "cliente"}
