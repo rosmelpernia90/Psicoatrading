@@ -216,6 +216,9 @@ textarea.form-input{min-height:90px;resize:vertical}
       <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
       <button class="sb-item" id="nav-diary-psych" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic">📖</span><span>Diario clínico</span></button>
       <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
+      <button class="sb-item" data-view="psicologos" id="nav-psicologos" onclick="showView('psicologos')" style="display:none"><span class="ic">🧠</span><span>Psicólogos</span></button>
+      <button class="sb-item" data-view="asignaciones" id="nav-asignaciones" onclick="showView('asignaciones')" style="display:none"><span class="ic">🔗</span><span>Asignaciones</span></button>
+      <button class="sb-item" data-view="solicitudes" id="nav-solicitudes" onclick="showView('solicitudes')" style="display:none"><span class="ic">🔔</span><span>Solicitudes <span id="badge-solicitudes" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.68rem;margin-left:4px">0</span></span></button>
     </nav>
     <div class="sb-footer">
       <div class="sb-user" id="sb-user"></div>
@@ -357,7 +360,95 @@ textarea.form-input{min-height:90px;resize:vertical}
         </div>
       </div>
     </div>
+
+    <!-- PSICÓLOGOS (solo admin) -->
+    <div class="view-panel" id="view-psicologos">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem">
+        <h1>Psicólogos</h1>
+        <button class="btn-gold" onclick="openPsicoModal()">+ Nuevo Psicólogo</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Email</th><th>Especialidad</th><th>Pacientes activos</th><th>Disponible</th><th>Acciones</th></tr></thead>
+            <tbody id="psico-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASIGNACIONES (solo admin) -->
+    <div class="view-panel" id="view-asignaciones">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem">
+        <h1>Asignaciones Activas</h1>
+        <button class="btn-gold" onclick="openAsignModal()">+ Nueva Asignación</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Paciente</th><th>Psicólogo</th><th>Asignado por</th><th>Desde</th><th>Acciones</th></tr></thead>
+            <tbody id="asign-tbody"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOLICITUDES DE CAMBIO (solo admin) -->
+    <div class="view-panel" id="view-solicitudes">
+      <h1 style="margin-bottom:1rem">Solicitudes de Cambio de Psicólogo</h1>
+      <div style="display:flex;gap:8px;margin-bottom:1rem">
+        <button class="btn-ghost" id="sol-tab-pendiente" onclick="filterSolicitudes('pendiente')" style="font-size:.8rem;padding:6px 14px;border-radius:var(--r2);border:1px solid var(--border);background:var(--gold-soft);color:var(--gold);font-weight:600">Pendientes</button>
+        <button class="btn-ghost" id="sol-tab-todas" onclick="filterSolicitudes('todas')" style="font-size:.8rem;padding:6px 14px;border-radius:var(--r2);border:1px solid var(--border);background:none;color:var(--ink3)">Todas</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Paciente</th><th>Psicólogo actual</th><th>Motivo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <tbody id="sol-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
+
+<!-- ===== MODAL PERFIL PSICÓLOGO ===== -->
+<div id="psico-profile-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.7);z-index:200;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:var(--sh);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.2rem">Perfil del Psicólogo</h2>
+      <button onclick="closePsicoProfileModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
+    </div>
+    <div class="form-group"><label class="form-label">Especialidad</label><input class="form-input" id="pp-especialidad" placeholder="Ej: Psicología clínica del deporte"></div>
+    <div class="form-group"><label class="form-label">Bio</label><textarea class="form-input" id="pp-bio" rows="3" style="resize:vertical" placeholder="Descripción breve..."></textarea></div>
+    <div class="form-group"><label class="form-label">Idiomas</label><input class="form-input" id="pp-idiomas" placeholder="Español, Inglés"></div>
+    <div class="form-group"><label class="form-label">Tarjeta profesional</label><input class="form-input" id="pp-tarjeta" placeholder="TP-XXXXX"></div>
+    <div class="form-group"><label class="form-label">Max. pacientes simultáneos</label><input class="form-input" id="pp-max" type="number" min="1" max="100" value="20"></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.5rem">
+      <input type="checkbox" id="pp-disponible" style="width:18px;height:18px;accent-color:var(--gold)">
+      <label for="pp-disponible" style="font-size:.88rem;color:var(--ink2);cursor:pointer">Disponible para nuevos pacientes</label>
+    </div>
+    <div style="margin-top:1.25rem;text-align:right;display:flex;align-items:center;gap:1rem;justify-content:flex-end">
+      <span id="pp-msg" style="font-size:.85rem"></span>
+      <button id="pp-save-btn" class="btn-gold" onclick="savePsicoProfile()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL NUEVA ASIGNACIÓN ===== -->
+<div id="asign-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.7);z-index:200;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:440px;width:100%;box-shadow:var(--sh)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.2rem">Nueva Asignación</h2>
+      <button onclick="closeAsignModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
+    </div>
+    <div class="form-group"><label class="form-label">Psicólogo</label><select class="form-input" id="asign-psico-sel"><option value="">— Cargando —</option></select></div>
+    <div class="form-group"><label class="form-label">Paciente</label><select class="form-input" id="asign-pac-sel"><option value="">— Cargando —</option></select></div>
+    <div style="margin-top:1.25rem;text-align:right;display:flex;align-items:center;gap:1rem;justify-content:flex-end">
+      <span id="asign-msg" style="font-size:.85rem"></span>
+      <button id="asign-save-btn" class="btn-gold" onclick="saveAsignacion()">Asignar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== MODAL USUARIO ===== -->
@@ -643,7 +734,7 @@ function enterApp() {
 let viewAsRole = null;  // null = admin real; 'psychologist'/'cliente' = preview
 
 // Items que SOLO ve el admin (no el psicólogo)
-const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-emails', 'nav-users'];
+const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-emails', 'nav-users', 'nav-psicologos', 'nav-asignaciones', 'nav-solicitudes'];
 
 function applyClinicalRole(effectiveRole) {
   // effectiveRole: 'admin' o 'psychologist'
@@ -717,6 +808,9 @@ function showView(name) {
   if (name === 'users') loadUsers();
   if (name === 'progress') loadCourseProgress();
   if (name === 'diary-psych') initPsychDiary();
+  if (name === 'psicologos') loadPsicologos();
+  if (name === 'asignaciones') loadAsignaciones();
+  if (name === 'solicitudes') loadSolicitudes();
 }
 
 // ============================================================
@@ -1547,6 +1641,230 @@ async function loadCourseProgress() {
     <td style="color:var(--ink2);font-size:.82rem">${c.quiz_scores.length ? c.quiz_scores.map(q => 'M'+q.module_id+':'+q.score).join(' · ') : '—'}</td>
     <td style="color:var(--ink3)">${c.last_activity ? new Date(c.last_activity).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
+}
+
+// ============================================================
+// PSICÓLOGOS (Fase 5D)
+// ============================================================
+let allPsicos = [];
+
+async function loadPsicologos() {
+  const data = await api('/api/psicologos');
+  if (!data) return;
+  allPsicos = data.psychologists || [];
+  renderPsicologos(allPsicos);
+  updateBadgeSolicitudes();
+}
+
+function renderPsicologos(list) {
+  const tbody = document.getElementById('psico-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay psicólogos registrados aún.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(p => `<tr>
+    <td style="color:var(--ink);font-weight:600">${p.name}</td>
+    <td style="color:var(--ink2)">${p.email}</td>
+    <td style="color:var(--ink2)">${p.especialidad || '—'}</td>
+    <td><span class="pill ${p.active_patients >= p.max_pacientes ? 'pill-red' : 'pill-green'}">${p.active_patients} / ${p.max_pacientes}</span></td>
+    <td><span class="pill ${p.esta_disponible ? 'pill-green' : 'pill-amber'}">${p.esta_disponible ? 'Sí' : 'No'}</span></td>
+    <td><button onclick="openPsicoProfileModal(${p.id})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.78rem;color:var(--ink2);cursor:pointer">Editar perfil</button></td>
+  </tr>`).join('');
+}
+
+let psicoProfileTarget = null;
+
+async function openPsicoProfileModal(id) {
+  psicoProfileTarget = id;
+  const data = await api('/api/psicologos/' + id + '/load');
+  if (!data) return;
+  const p = data.profile || {};
+  document.getElementById('pp-bio').value = p.bio || '';
+  document.getElementById('pp-especialidad').value = p.especialidad || '';
+  document.getElementById('pp-idiomas').value = p.idiomas || '';
+  document.getElementById('pp-max').value = p.max_pacientes || 20;
+  document.getElementById('pp-disponible').checked = p.esta_disponible !== false;
+  document.getElementById('pp-tarjeta').value = p.tarjeta_profesional || '';
+  document.getElementById('pp-msg').textContent = '';
+  document.getElementById('psico-profile-modal').style.display = 'flex';
+}
+
+function closePsicoProfileModal() {
+  document.getElementById('psico-profile-modal').style.display = 'none';
+  psicoProfileTarget = null;
+}
+
+async function savePsicoProfile() {
+  if (!psicoProfileTarget) return;
+  const btn = document.getElementById('pp-save-btn');
+  btn.disabled = true;
+  const body = {
+    bio: document.getElementById('pp-bio').value,
+    especialidad: document.getElementById('pp-especialidad').value,
+    idiomas: document.getElementById('pp-idiomas').value,
+    max_pacientes: parseInt(document.getElementById('pp-max').value) || 20,
+    esta_disponible: document.getElementById('pp-disponible').checked,
+    tarjeta_profesional: document.getElementById('pp-tarjeta').value
+  };
+  const res = await api('/api/psicologos/' + psicoProfileTarget + '/profile', { method:'POST', body: JSON.stringify(body) });
+  btn.disabled = false;
+  if (!res) { document.getElementById('pp-msg').textContent = 'Error al guardar'; return; }
+  document.getElementById('pp-msg').style.color = 'var(--green)';
+  document.getElementById('pp-msg').textContent = '✓ Perfil guardado';
+  setTimeout(() => { closePsicoProfileModal(); loadPsicologos(); }, 900);
+}
+
+function openPsicoModal() {
+  // Crear nuevo psicólogo → redirigir al modal de usuario existente con rol psychologist preseleccionado
+  openUserModal();
+  setTimeout(() => {
+    const sel = document.getElementById('user-role');
+    if (sel) sel.value = 'psychologist';
+  }, 80);
+}
+
+// ============================================================
+// ASIGNACIONES (Fase 5D)
+// ============================================================
+let allAsignaciones = [];
+
+async function loadAsignaciones() {
+  const data = await api('/api/asignaciones/active');
+  if (!data) return;
+  allAsignaciones = data.assignments || [];
+  renderAsignaciones(allAsignaciones);
+}
+
+function renderAsignaciones(list) {
+  const tbody = document.getElementById('asign-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:2rem">No hay asignaciones activas.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(a => `<tr>
+    <td style="color:var(--ink);font-weight:600">${a.paciente_name}</td>
+    <td style="color:var(--ink2)">${a.psicologo_name}</td>
+    <td style="color:var(--ink3)">${a.assigned_by || 'Admin'}</td>
+    <td style="color:var(--ink3)">${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('es-CO') : '—'}</td>
+    <td><button onclick="endAsignacion(${a.id})" style="background:none;border:1px solid var(--red);border-radius:6px;padding:4px 10px;font-size:.78rem;color:var(--red);cursor:pointer">Finalizar</button></td>
+  </tr>`).join('');
+}
+
+async function endAsignacion(id) {
+  const reason = prompt('¿Motivo para finalizar la asignación?');
+  if (reason === null) return;
+  const res = await api('/api/asignaciones/' + id + '/end', { method:'PATCH', body: JSON.stringify({ end_reason: reason || 'Finalizado por admin' }) });
+  if (res) loadAsignaciones();
+}
+
+async function openAsignModal() {
+  // Cargar psicólogos y pacientes disponibles
+  const [psData, pacData] = await Promise.all([
+    api('/api/psicologos'),
+    api('/api/leads?limit=200')
+  ]);
+  if (!psData || !pacData) return;
+  const psicos = (psData.psychologists || []).filter(p => p.esta_disponible && p.active_patients < p.max_pacientes);
+  const pacientes = (pacData.leads || []);
+
+  document.getElementById('asign-psico-sel').innerHTML = '<option value="">— Psicólogo —</option>' +
+    psicos.map(p => `<option value="${p.id}">${p.name} (${p.active_patients}/${p.max_pacientes})</option>`).join('');
+  document.getElementById('asign-pac-sel').innerHTML = '<option value="">— Paciente —</option>' +
+    pacientes.map(p => `<option value="${p.id}">${p.name} · ${p.email}</option>`).join('');
+  document.getElementById('asign-msg').textContent = '';
+  document.getElementById('asign-modal').style.display = 'flex';
+}
+
+function closeAsignModal() {
+  document.getElementById('asign-modal').style.display = 'none';
+}
+
+async function saveAsignacion() {
+  const psicoId = parseInt(document.getElementById('asign-psico-sel').value);
+  const pacId = parseInt(document.getElementById('asign-pac-sel').value);
+  const msg = document.getElementById('asign-msg');
+  if (!psicoId || !pacId) { msg.style.color = 'var(--amber)'; msg.textContent = 'Selecciona psicólogo y paciente.'; return; }
+  const btn = document.getElementById('asign-save-btn');
+  btn.disabled = true;
+  const res = await api('/api/asignaciones', { method:'POST', body: JSON.stringify({ psicologo_id: psicoId, paciente_id: pacId }) });
+  btn.disabled = false;
+  if (!res) { msg.style.color = 'var(--red)'; msg.textContent = 'Error al crear asignación (¿ya tiene psicólogo activo?).'; return; }
+  closeAsignModal();
+  loadAsignaciones();
+}
+
+// ============================================================
+// SOLICITUDES DE CAMBIO (Fase 5D)
+// ============================================================
+let allSolicitudes = [];
+let solicitudFiltro = 'pendiente';
+
+async function loadSolicitudes() {
+  const data = await api('/api/cambio-psicologo/pendientes');
+  if (!data) return;
+  allSolicitudes = data.requests || [];
+  updateBadgeSolicitudes();
+  filterSolicitudes(solicitudFiltro);
+}
+
+function updateBadgeSolicitudes() {
+  const pendientes = allSolicitudes.filter(s => s.status === 'pendiente').length;
+  const badge = document.getElementById('badge-solicitudes');
+  if (badge) {
+    badge.textContent = pendientes;
+    badge.style.display = pendientes > 0 ? '' : 'none';
+  }
+}
+
+const MOTIVOS = { no_conecto: 'No conecté', horarios: 'Horarios', enfoque: 'Enfoque distinto', personal: 'Razones personales', otro: 'Otro' };
+
+function filterSolicitudes(filtro) {
+  solicitudFiltro = filtro;
+  document.getElementById('sol-tab-pendiente').style.background = filtro === 'pendiente' ? 'var(--gold-soft)' : 'none';
+  document.getElementById('sol-tab-pendiente').style.color = filtro === 'pendiente' ? 'var(--gold)' : 'var(--ink3)';
+  document.getElementById('sol-tab-todas').style.background = filtro === 'todas' ? 'var(--gold-soft)' : 'none';
+  document.getElementById('sol-tab-todas').style.color = filtro === 'todas' ? 'var(--gold)' : 'var(--ink3)';
+  const lista = filtro === 'pendiente' ? allSolicitudes.filter(s => s.status === 'pendiente') : allSolicitudes;
+  renderSolicitudes(lista);
+}
+
+function renderSolicitudes(list) {
+  const tbody = document.getElementById('sol-tbody');
+  const pillMap = { pendiente: 'pill-amber', aprobada: 'pill-green', rechazada: 'pill-red' };
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">${solicitudFiltro === 'pendiente' ? 'No hay solicitudes pendientes.' : 'No hay solicitudes.'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(s => `<tr>
+    <td style="color:var(--ink);font-weight:600">${s.paciente_name}</td>
+    <td style="color:var(--ink2)">${s.current_psicologo_name || '—'}</td>
+    <td style="color:var(--ink2)">${MOTIVOS[s.reason_category] || s.reason_category}${s.reason_text ? ': <em>' + s.reason_text.slice(0,40) + (s.reason_text.length>40?'…':'') + '</em>' : ''}</td>
+    <td><span class="pill ${pillMap[s.status]}">${s.status}</span></td>
+    <td style="color:var(--ink3)">${s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : '—'}</td>
+    <td>${s.status === 'pendiente' ? `
+      <button onclick="aprobarSolicitud(${s.id})" style="background:var(--green-bg);border:1px solid var(--green);border-radius:6px;padding:4px 10px;font-size:.78rem;color:var(--green);cursor:pointer;margin-right:4px">Aprobar</button>
+      <button onclick="rechazarSolicitud(${s.id})" style="background:none;border:1px solid var(--red);border-radius:6px;padding:4px 10px;font-size:.78rem;color:var(--red);cursor:pointer">Rechazar</button>
+    ` : '<span style="color:var(--ink3);font-size:.8rem">—</span>'}</td>
+  </tr>`).join('');
+}
+
+async function aprobarSolicitud(id) {
+  const psicoId = prompt('ID del nuevo psicólogo a asignar:');
+  if (!psicoId || isNaN(parseInt(psicoId))) return;
+  const notes = prompt('Notas admin (opcional):') || '';
+  const res = await api('/api/cambio-psicologo/' + id + '/aprobar', {
+    method:'POST', body: JSON.stringify({ new_psicologo_id: parseInt(psicoId), admin_notes: notes })
+  });
+  if (res) { loadSolicitudes(); loadAsignaciones(); }
+}
+
+async function rechazarSolicitud(id) {
+  const notes = prompt('Motivo del rechazo:');
+  if (notes === null) return;
+  const res = await api('/api/cambio-psicologo/' + id + '/rechazar', {
+    method:'POST', body: JSON.stringify({ admin_notes: notes || 'Rechazado por admin' })
+  });
+  if (res) loadSolicitudes();
 }
 </script>
 </body>
