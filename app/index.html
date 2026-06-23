@@ -198,14 +198,23 @@ textarea.form-input{min-height:90px;resize:vertical}
 <div class="app" id="app-view">
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="sb-brand"><h3>PsicoaTrading</h3><p>Panel Clínico</p></div>
+    <div class="sb-brand"><h3>PsicoaTrading</h3><p id="sb-brand-sub">Panel Clínico</p></div>
+    <!-- Switcher "Ver como" (solo admin) -->
+    <div id="view-as-box" style="display:none;padding:.75rem 1rem;border-bottom:1px solid var(--border)">
+      <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Ver como</div>
+      <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:3px">
+        <button id="va-admin" onclick="setViewAs(null)" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:var(--gold-soft);color:var(--gold)">Admin</button>
+        <button id="va-psico" onclick="setViewAs('psychologist')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:none;color:var(--ink3)">Psicólogo</button>
+        <button id="va-cliente" onclick="setViewAs('cliente')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:none;color:var(--ink3)">Cliente</button>
+      </div>
+    </div>
     <nav class="sb-nav">
-      <button class="sb-item active" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">📊</span><span>Dashboard</span></button>
-      <button class="sb-item" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
-      <button class="sb-item" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
-      <button class="sb-item" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
-      <button class="sb-item" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
-      <button class="sb-item" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic">📖</span><span>Diario clínico</span></button>
+      <button class="sb-item active" id="nav-dashboard" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">📊</span><span>Dashboard</span></button>
+      <button class="sb-item" id="nav-leads" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
+      <button class="sb-item" id="nav-emails" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
+      <button class="sb-item" id="nav-sessions" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
+      <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
+      <button class="sb-item" id="nav-diary-psych" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic">📖</span><span>Diario clínico</span></button>
       <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
     </nav>
     <div class="sb-footer">
@@ -217,6 +226,30 @@ textarea.form-input{min-height:90px;resize:vertical}
 
   <!-- MAIN CONTENT -->
   <main class="main">
+    <!-- Banner de previsualización (switcher admin) -->
+    <div id="view-as-banner" style="display:none;align-items:center;justify-content:space-between;gap:1rem;
+      background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r2);padding:10px 16px;margin-bottom:1.25rem">
+      <span style="font-size:.85rem;color:var(--amber);font-weight:600">
+        👁 Estás viendo como <span id="view-as-label"></span> (solo lectura)
+      </span>
+      <button onclick="setViewAs(null)" style="background:var(--amber);color:#2a1a06;border:none;border-radius:6px;
+        padding:6px 14px;font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer">Volver a vista Admin</button>
+    </div>
+    <!-- PREVIEW CLIENTE (switcher admin) -->
+    <div class="view-panel" id="view-preview-cliente">
+      <h1 style="margin-bottom:.5rem">Vista de Cliente</h1>
+      <div class="card" style="text-align:center;padding:2.5rem">
+        <div style="font-size:2rem;margin-bottom:.75rem">🧑‍💻</div>
+        <p style="color:var(--ink2);max-width:46ch;margin:0 auto 1rem">
+          La previsualización del portal del cliente <strong>con datos de un cliente específico</strong>
+          se habilita en la <strong>Fase 5</strong>, junto con la vista de detalle de cliente del admin
+          (requiere lectura de datos de un cliente puntual).
+        </p>
+        <p style="color:var(--ink3);font-size:.85rem">
+          Mientras tanto, para ver el portal real del cliente puedes entrar con una cuenta de rol cliente.
+        </p>
+      </div>
+    </div>
     <!-- DASHBOARD -->
     <div class="view-panel active" id="view-dashboard">
       <h1 style="margin-bottom:1.5rem">Dashboard</h1>
@@ -588,12 +621,12 @@ function enterApp() {
   const role = (USER?.role || '').toLowerCase();
 
   if (role === 'admin' || role === 'psychologist') {
-    // Panel clínico existente — sin cambios
     document.getElementById('app-view').classList.add('active');
     document.getElementById('app-cliente').style.display = 'none';
-    // El módulo de Usuarios solo es visible para admin
-    document.getElementById('nav-users').style.display = (role === 'admin') ? '' : 'none';
-    showView('dashboard');
+    // Switcher "Ver como" solo para admin
+    document.getElementById('view-as-box').style.display = (role === 'admin') ? '' : 'none';
+    viewAsRole = null;
+    applyClinicalRole(role);
   } else {
     // Portal del cliente
     document.getElementById('app-view').classList.remove('active');
@@ -601,6 +634,67 @@ function enterApp() {
     document.getElementById('cliente-name').textContent = USER?.name || USER?.email || '';
     clientShowSection('course');
     loadCourse();
+  }
+}
+
+// ============================================================
+// ROLES Y SWITCHER "VER COMO" (Fase 4)
+// ============================================================
+let viewAsRole = null;  // null = admin real; 'psychologist'/'cliente' = preview
+
+// Items que SOLO ve el admin (no el psicólogo)
+const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-emails', 'nav-users'];
+
+function applyClinicalRole(effectiveRole) {
+  // effectiveRole: 'admin' o 'psychologist'
+  const isAdmin = (effectiveRole === 'admin');
+  ADMIN_ONLY_NAV.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
+  // Etiqueta de rol en el sidebar
+  document.getElementById('sb-brand-sub').textContent = isAdmin ? 'Panel Clínico' : 'Panel del Psicólogo';
+  // Vista por defecto: admin → Dashboard; psicólogo → Pacientes
+  showView(isAdmin ? 'dashboard' : 'leads');
+}
+
+function setViewAs(role) {
+  // Solo el admin real puede usar el switcher
+  if ((USER?.role || '').toLowerCase() !== 'admin') return;
+  viewAsRole = role;
+
+  // Resaltar botón activo del switcher
+  const btns = { null: 'va-admin', psychologist: 'va-psico', cliente: 'va-cliente' };
+  ['va-admin','va-psico','va-cliente'].forEach(id => {
+    const b = document.getElementById(id);
+    b.style.background = 'none'; b.style.color = 'var(--ink3)';
+  });
+  const active = document.getElementById(btns[role]);
+  if (active) { active.style.background = 'var(--gold-soft)'; active.style.color = 'var(--gold)'; }
+
+  const banner = document.getElementById('view-as-banner');
+  const label = { psychologist: 'Psicólogo', cliente: 'Cliente' };
+
+  if (role === null) {
+    // Volver a vista admin
+    banner.style.display = 'none';
+    document.getElementById('app-view').classList.add('active');
+    document.getElementById('app-cliente').style.display = 'none';
+    document.getElementById('view-as-box').style.display = '';
+    applyClinicalRole('admin');
+  } else if (role === 'psychologist') {
+    banner.style.display = 'flex';
+    document.getElementById('view-as-label').textContent = label[role];
+    document.getElementById('app-view').classList.add('active');
+    document.getElementById('app-cliente').style.display = 'none';
+    applyClinicalRole('psychologist');
+  } else if (role === 'cliente') {
+    banner.style.display = 'flex';
+    document.getElementById('view-as-label').textContent = label[role];
+    document.getElementById('app-view').classList.add('active');
+    document.getElementById('app-cliente').style.display = 'none';
+    // Ocultar nav items y mostrar el panel informativo de preview cliente
+    showView('preview-cliente');
   }
 }
 
