@@ -1074,7 +1074,7 @@ def create_session(data: SessionCreate, payload: dict = Depends(verify_token), d
 @app.get("/api/email-queue")
 def get_email_queue(
     status: Optional[str] = None,
-    payload: dict = Depends(verify_token),
+    payload: dict = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     query = db.query(EmailQueue)
