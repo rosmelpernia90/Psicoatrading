@@ -465,6 +465,19 @@ def create_token(data: dict):
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+def require_admin(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acceso solo para administradores")
+    return payload
+
+
+def require_psychologist_or_admin(payload: dict = Depends(verify_token)):
+    role = payload.get("role")
+    if role not in ("admin", "psychologist"):
+        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clinico")
+    return payload
+
+
 # ============================================
 # EMAIL SEQUENCES
 # ============================================
@@ -1084,22 +1097,8 @@ def get_email_queue(
 
 
 # ============================================
-# ADMIN - GESTIÃ“N DE USUARIOS
+# ADMIN - GESTIÃ”N DE USUARIOS
 # ============================================
-def require_admin(payload: dict = Depends(verify_token)):
-    """Guard: solo permite acceso a usuarios con rol admin."""
-    if payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Acceso solo para administradores")
-    return payload
-
-
-def require_psychologist_or_admin(payload: dict = Depends(verify_token)):
-    """Guard: rol admin o psychologist."""
-    if payload.get("role") not in ("admin", "psychologist"):
-        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clÃ­nico")
-    return payload
-
-
 def get_current_psychologist(payload: dict, db: Session):
     """Devuelve el registro Psychologist del token (admin o psychologist)."""
     psych = db.query(Psychologist).filter(Psychologist.email == payload["sub"]).first()
