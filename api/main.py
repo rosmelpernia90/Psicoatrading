@@ -296,10 +296,14 @@ class TestResultSubmit(BaseModel):
     phone: Optional[str] = None
     country: Optional[str] = None
     trading_experience: Optional[str] = None
+    main_market: Optional[str] = None
     test_type: str
     profile_name: str
     profile_code: str
     total_score: float
+    max_score: Optional[float] = None
+    percentile: Optional[float] = None
+    risk_level: Optional[str] = None
     answers: Optional[dict] = None
     dimensions: List[dict]
 
@@ -308,7 +312,11 @@ class ContactSubmit(BaseModel):
     name: str
     email: EmailStr
     phone: Optional[str] = None
-    message: str
+    message: Optional[str] = None
+    notes: Optional[str] = None
+    country: Optional[str] = None
+    trading_experience: Optional[str] = None
+    source: Optional[str] = "contact_form"
 
 
 class LoginRequest(BaseModel):
@@ -635,16 +643,19 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
             phone=data.phone,
             country=data.country,
             trading_experience=data.trading_experience,
-            source="web_test"
+            source="web_test",
+            funnel_stage="test_completed",
         )
         db.add(lead)
         db.flush()
+        print(f"[LEAD] Nuevo lead por test: {data.email} perfil={data.profile_name}")
     else:
         lead.name = data.name
-        if data.phone:
-            lead.phone = data.phone
-        if data.country:
-            lead.country = data.country
+        lead.funnel_stage = "test_completed"
+        if data.phone: lead.phone = data.phone
+        if data.country: lead.country = data.country
+        if data.trading_experience: lead.trading_experience = data.trading_experience
+        print(f"[LEAD] Test completado por lead existente: {data.email}")
 
     # Save test result
     test_result = TestResult(
@@ -660,13 +671,16 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
 
     # Save dimension scores
     for dim in data.dimensions:
+        sc = float(dim.get("score", 0))
+        mx = float(dim.get("max_score", dim.get("max", 100)) or 100)
+        pct = dim.get("percentage") or (round(sc / mx * 100, 1) if mx else 0)
         ds = DimensionScore(
             test_result_id=test_result.id,
-            dimension_name=dim.get("name", ""),
-            dimension_code=dim.get("code", ""),
-            score=dim.get("score", 0),
-            max_score=dim.get("max_score", 100),
-            percentage=dim.get("percentage", 0)
+            dimension_name=dim.get("name", dim.get("dimension_code", "")),
+            dimension_code=dim.get("code", dim.get("dimension_code", "")),
+            score=sc,
+            max_score=mx,
+            percentage=pct
         )
         db.add(ds)
 
@@ -685,19 +699,33 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
 
 @app.post("/api/contact")
 def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
+    note_text = data.message or data.notes or ""
+    source = data.source or "contact_form"
     lead = db.query(Lead).filter(Lead.email == data.email).first()
     if not lead:
         lead = Lead(
             name=data.name,
             email=data.email,
             phone=data.phone,
-            source="contact_form",
-            notes=data.message
+            country=data.country,
+            trading_experience=data.trading_experience,
+            source=source,
+            notes=note_text,
+            funnel_stage="nuevo",
         )
         db.add(lead)
+        print(f"[LEAD] Nuevo lead capturado: {data.email} fuente={source}")
     else:
-        lead.notes = (lead.notes or "") + f"\n\n[Contacto {datetime.utcnow().strftime('%Y-%m-%d')}]: {data.message}"
-
+        # Actualiza datos si faltan y añade nota
+        if data.phone and not lead.phone:
+            lead.phone = data.phone
+        if data.country and not lead.country:
+            lead.country = data.country
+        if data.trading_experience and not lead.trading_experience:
+            lead.trading_experience = data.trading_experience
+        if note_text:
+            lead.notes = (lead.notes or "") + f"\n\n[{source} {datetime.utcnow().strftime('%Y-%m-%d')}]: {note_text}"
+        print(f"[LEAD] Lead actualizado: {data.email}")
     db.commit()
     return {"success": True, "message": "Mensaje recibido. Te contactaremos pronto."}
 
