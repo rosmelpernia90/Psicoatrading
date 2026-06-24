@@ -91,20 +91,44 @@ input,select,textarea{font-family:inherit}
 /* LAYOUT */
 .app{display:none;min-height:100vh}
 .app.active{display:flex}
-.sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column}
-.sb-brand{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border)}
-.sb-brand h3{font-size:1.15rem;color:var(--ink);line-height:1.2}
-.sb-brand p{font-size:.65rem;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700}
-.sb-nav{flex:1;padding:.75rem 0}
-.sb-item{display:flex;align-items:center;gap:10px;padding:10px 1.5rem;font-size:.88rem;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
-.sb-item:hover{background:var(--bg);color:var(--ink)}
-.sb-item.active{background:var(--gold-soft);color:var(--gold);font-weight:600}
-.sb-item .ic{width:20px;text-align:center;font-size:1rem}
-.sb-footer{padding:1rem 1.5rem;border-top:1px solid var(--border)}
-.sb-user{font-size:.85rem;font-weight:600;color:var(--ink)}
-.sb-role{font-size:.72rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
-.sb-logout{margin-top:.5rem;font-size:.8rem;color:var(--red);background:none;border:none;padding:0;font-weight:500}
-.sb-logout:hover{text-decoration:underline}
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column}
+
+/* Sidebar header: logo + lockup serif/sans */
+.sb-brand{display:flex;align-items:center;gap:10px;padding:1.1rem 1.25rem;border-bottom:1px solid var(--border)}
+.sb-brand .sb-logo{width:32px;height:32px;flex-shrink:0;object-fit:contain}
+.sb-brand .sb-lockup{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.sb-brand h3{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;font-weight:600;font-size:1.05rem;color:var(--text);letter-spacing:-.005em;line-height:1.15}
+.sb-brand p{font-size:10px;color:var(--text-muted);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-top:2px}
+
+/* Segmented control "Ver como" */
+.sb-segmented-wrap{padding:.85rem 1.1rem;border-bottom:1px solid var(--border)}
+.sb-segmented-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:8px}
+.sb-segmented{display:flex;gap:2px;background:var(--bg-app);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px}
+.sb-segmented button{flex:1;padding:7px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s}
+.sb-segmented button:hover{color:var(--text)}
+.sb-segmented button.active{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* Nav items con indicador izquierdo */
+.sb-nav{flex:1;padding:.6rem 0;overflow-y:auto}
+.sb-item{position:relative;display:flex;align-items:center;gap:12px;padding:10px 1.25rem 10px 1.5rem;font-family:'IBM Plex Sans',sans-serif;font-size:.875rem;font-weight:500;color:var(--text-muted);cursor:pointer;transition:background .15s,color .15s;border:none;background:none;width:100%;text-align:left}
+.sb-item:hover{background:var(--bg-surface-2);color:var(--text)}
+.sb-item.active{background:var(--accent-soft);color:var(--text);font-weight:600}
+.sb-item.active::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--brand-gradient)}
+.sb-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.sb-item .ic{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted);transition:color .15s}
+.sb-item.active .ic,.sb-item:hover .ic{color:var(--accent)}
+.sb-item .ic svg{width:18px;height:18px;stroke-width:1.75}
+
+/* Badge de solicitudes pendientes */
+.sb-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 6px;margin-left:auto;background:var(--danger);color:#fff;border-radius:var(--radius-pill);font-size:10px;font-weight:700;line-height:1}
+
+/* Footer */
+.sb-footer{padding:1rem 1.25rem;border-top:1px solid var(--border)}
+.sb-user{font-size:.85rem;font-weight:600;color:var(--text)}
+.sb-role{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:2px}
+.sb-logout{margin-top:.6rem;font-size:.78rem;color:var(--text-muted);background:none;border:none;padding:0;font-weight:500;cursor:pointer;transition:color .15s}
+.sb-logout:hover{color:var(--danger)}
+
 .main{margin-left:var(--sidebar-w);flex:1;padding:2rem;min-height:100vh}
 
 /* KPI CARDS */
@@ -198,8 +222,10 @@ textarea.form-input{min-height:90px;resize:vertical}
 /* RESPONSIVE */
 @media(max-width:800px){
   .sidebar{width:60px;overflow:hidden}
-  .sb-brand h3,.sb-brand p,.sb-item span:not(.ic),.sb-footer{display:none}
+  .sb-brand{padding:.85rem;justify-content:center}
+  .sb-brand .sb-lockup,.sb-item span:not(.ic):not(.sb-badge),.sb-footer,.sb-segmented-wrap{display:none}
   .sb-item{justify-content:center;padding:12px}
+  .sb-item.active::before{top:4px;bottom:4px}
   .main{margin-left:60px}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .form-grid{grid-template-columns:1fr}
@@ -234,27 +260,33 @@ textarea.form-input{min-height:90px;resize:vertical}
 <div class="app" id="app-view">
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="sb-brand"><h3>PsicoaTrading</h3><p id="sb-brand-sub">Panel Clínico</p></div>
-    <!-- Switcher "Ver como" (solo admin) -->
-    <div id="view-as-box" style="display:none;padding:.75rem 1rem;border-bottom:1px solid var(--border)">
-      <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Ver como</div>
-      <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:3px">
-        <button id="va-admin" onclick="setViewAs(null)" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:var(--gold-soft);color:var(--gold)">Admin</button>
-        <button id="va-psico" onclick="setViewAs('psychologist')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:none;color:var(--ink3)">Psicólogo</button>
-        <button id="va-cliente" onclick="setViewAs('cliente')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;background:none;color:var(--ink3)">Cliente</button>
+    <div class="sb-brand">
+      <img class="sb-logo" src="logo.png" alt="">
+      <div class="sb-lockup">
+        <h3>PsicoaTrading</h3>
+        <p id="sb-brand-sub">Panel Clínico</p>
       </div>
     </div>
-    <nav class="sb-nav">
-      <button class="sb-item active" id="nav-dashboard" data-view="dashboard" onclick="showView('dashboard')"><span class="ic">📊</span><span>Dashboard</span></button>
-      <button class="sb-item" id="nav-leads" data-view="leads" onclick="showView('leads')"><span class="ic">👥</span><span>Pacientes</span></button>
-      <button class="sb-item" id="nav-emails" data-view="emails" onclick="showView('emails')"><span class="ic">📧</span><span>Emails</span></button>
-      <button class="sb-item" id="nav-sessions" data-view="sessions" onclick="showView('sessions')"><span class="ic">📅</span><span>Sesiones</span></button>
-      <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic">📈</span><span>Progreso del cliente</span></button>
-      <button class="sb-item" id="nav-diary-psych" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic">📖</span><span>Diario clínico</span></button>
-      <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic">⚙️</span><span>Usuarios</span></button>
-      <button class="sb-item" data-view="psicologos" id="nav-psicologos" onclick="showView('psicologos')" style="display:none"><span class="ic">🧠</span><span>Psicólogos</span></button>
-      <button class="sb-item" data-view="asignaciones" id="nav-asignaciones" onclick="showView('asignaciones')" style="display:none"><span class="ic">🔗</span><span>Asignaciones</span></button>
-      <button class="sb-item" data-view="solicitudes" id="nav-solicitudes" onclick="showView('solicitudes')" style="display:none"><span class="ic">🔔</span><span>Solicitudes <span id="badge-solicitudes" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:.68rem;margin-left:4px">0</span></span></button>
+    <!-- Switcher "Ver como" (solo admin) -->
+    <div id="view-as-box" class="sb-segmented-wrap" style="display:none">
+      <div class="sb-segmented-label">Ver como</div>
+      <div class="sb-segmented" role="group" aria-label="Cambiar rol de previsualización">
+        <button id="va-admin" class="active" onclick="setViewAs(null)">Admin</button>
+        <button id="va-psico" onclick="setViewAs('psychologist')">Psicólogo</button>
+        <button id="va-cliente" onclick="setViewAs('cliente')">Cliente</button>
+      </div>
+    </div>
+    <nav class="sb-nav" aria-label="Navegación principal">
+      <button class="sb-item active" id="nav-dashboard" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span><span>Dashboard</span></button>
+      <button class="sb-item" id="nav-leads" data-view="leads" onclick="showView('leads')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Pacientes</span></button>
+      <button class="sb-item" id="nav-emails" data-view="emails" onclick="showView('emails')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><span>Emails</span></button>
+      <button class="sb-item" id="nav-sessions" data-view="sessions" onclick="showView('sessions')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg></span><span>Sesiones</span></button>
+      <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span>Progreso del cliente</span></button>
+      <button class="sb-item" id="nav-diary-psych" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span><span>Diario clínico</span></button>
+      <button class="sb-item" data-view="users" id="nav-users" onclick="showView('users')" style="display:none"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Usuarios</span></button>
+      <button class="sb-item" data-view="psicologos" id="nav-psicologos" onclick="showView('psicologos')" style="display:none"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4.5 4.5 0 0 0-4.5 4.5c0 .25.02.5.07.74A3.5 3.5 0 0 0 4 10.5a3.5 3.5 0 0 0 2 3.16V15a3 3 0 0 0 3 3v2a2 2 0 0 0 2 2h2"/><path d="M12 2a4.5 4.5 0 0 1 4.5 4.5c0 .25-.02.5-.07.74A3.5 3.5 0 0 1 20 10.5a3.5 3.5 0 0 1-2 3.16V15a3 3 0 0 1-3 3v2a2 2 0 0 1-2 2"/><path d="M12 8v14"/></svg></span><span>Psicólogos</span></button>
+      <button class="sb-item" data-view="asignaciones" id="nav-asignaciones" onclick="showView('asignaciones')" style="display:none"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span>Asignaciones</span></button>
+      <button class="sb-item" data-view="solicitudes" id="nav-solicitudes" onclick="showView('solicitudes')" style="display:none"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span><span>Solicitudes</span><span id="badge-solicitudes" class="sb-badge" style="display:none">0</span></button>
     </nav>
     <div class="sb-footer">
       <div class="sb-user" id="sb-user"></div>
@@ -920,14 +952,12 @@ function setViewAs(role) {
   if ((USER?.role || '').toLowerCase() !== 'admin') return;
   viewAsRole = role;
 
-  // Resaltar botón activo del switcher
+  // Resaltar botón activo del switcher (clase .active sobre el segmented control)
   const btns = { null: 'va-admin', psychologist: 'va-psico', cliente: 'va-cliente' };
   ['va-admin','va-psico','va-cliente'].forEach(id => {
-    const b = document.getElementById(id);
-    b.style.background = 'none'; b.style.color = 'var(--ink3)';
+    document.getElementById(id)?.classList.remove('active');
   });
-  const active = document.getElementById(btns[role]);
-  if (active) { active.style.background = 'var(--gold-soft)'; active.style.color = 'var(--gold)'; }
+  document.getElementById(btns[role])?.classList.add('active');
 
   const banner = document.getElementById('view-as-banner');
   const label = { psychologist: 'Psicólogo', cliente: 'Cliente' };
