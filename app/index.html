@@ -149,6 +149,20 @@ input,select,textarea{font-family:inherit}
 /* Solo la vista activa se renderiza; el resto se oculta */
 .view-panel{display:none}
 .view-panel.active{display:block}
+
+/* MODALES - sistema canonico tema oscuro */
+.modal-backdrop{position:fixed;inset:0;background:rgba(6,11,22,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;animation:modal-fade-in .18s ease-out}
+@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:0;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 56px rgba(0,0,0,.55);overflow:hidden;animation:modal-pop-in .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes modal-pop-in{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);position:relative}
+.modal-header::before{content:"";position:absolute;top:0;left:22px;right:22px;height:2px;background:var(--brand-gradient);opacity:.7}
+.modal-title{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;font-size:1.25rem;font-weight:600;color:var(--text);letter-spacing:-.01em;margin:0}
+.modal-close{background:transparent;border:1px solid transparent;border-radius:var(--radius-sm);width:32px;height:32px;color:var(--text-muted);cursor:pointer;font-size:1.4rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{background:var(--bg-surface-2);color:var(--text)}
+.modal-close:focus-visible{border-color:var(--accent);outline:none}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--border);background:var(--bg-surface)}
 /* Marca de agua sutil del logo en la app (esquina inferior derecha, fija) */
 .app-watermark{position:fixed;right:32px;bottom:24px;width:340px;height:340px;
   background:url(logo.png) no-repeat center/contain;opacity:.03;filter:grayscale(.3);
@@ -585,8 +599,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 </div>
 
 <!-- ===== MODAL CAMBIO PSICÓLOGO (cliente, 3 pasos) ===== -->
-<div id="cambio-psico-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.75);z-index:300;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:var(--sh)">
+<div id="cambio-psico-modal" class="modal-backdrop" style="display:none;z-index:300" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:460px;padding:2rem">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
       <div>
@@ -666,8 +680,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 </div>
 
 <!-- ===== MODAL PERFIL PSICÓLOGO ===== -->
-<div id="psico-profile-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.7);z-index:200;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:var(--sh);max-height:90vh;overflow-y:auto">
+<div id="psico-profile-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-card" style="padding:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
       <h2 style="font-size:1.2rem">Perfil del Psicólogo</h2>
       <button onclick="closePsicoProfileModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
@@ -689,8 +703,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 </div>
 
 <!-- ===== MODAL NUEVA ASIGNACIÓN ===== -->
-<div id="asign-modal" style="display:none;position:fixed;inset:0;background:rgba(11,20,38,.7);z-index:200;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:var(--white);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:440px;width:100%;box-shadow:var(--sh)">
+<div id="asign-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:440px;padding:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
       <h2 style="font-size:1.2rem">Nueva Asignación</h2>
       <button onclick="closeAsignModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
@@ -705,47 +719,49 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 </div>
 
 <!-- ===== MODAL USUARIO ===== -->
-<div id="user-modal" style="display:none;position:fixed;inset:0;background:rgba(44,40,32,.45);z-index:200;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-      <h2 id="user-modal-title" style="font-size:1.3rem">Nuevo Usuario</h2>
-      <button onclick="closeUserModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1">×</button>
+<div id="user-modal" class="modal-backdrop" style="display:none" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="user-modal-title" class="modal-title">Nuevo Usuario</h2>
+      <button class="modal-close" onclick="closeUserModal()" aria-label="Cerrar">×</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Nombre</label>
-      <input class="form-input" id="user-name" placeholder="Nombre completo">
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input class="form-input" id="user-name" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="user-email" type="email" placeholder="usuario@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="user-pass-label">Contraseña</label>
+        <input class="form-input" id="user-pass" type="password" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-input" id="user-role" onchange="onRoleChange()">
+          <option value="cliente">Cliente</option>
+          <option value="psychologist">Psicólogo</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group" id="user-country-group">
+        <label class="form-label">País</label>
+        <input class="form-input" id="user-country" placeholder="País (opcional)">
+      </div>
+      <div class="form-group" id="user-active-group" style="display:none">
+        <label class="form-label">Estado</label>
+        <select class="form-input" id="user-active">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
+      <div class="login-err" id="user-modal-err" style="text-align:left;margin-top:.5rem"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input class="form-input" id="user-email" type="email" placeholder="usuario@email.com">
-    </div>
-    <div class="form-group">
-      <label class="form-label" id="user-pass-label">Contraseña</label>
-      <input class="form-input" id="user-pass" type="password" placeholder="••••••••">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Rol</label>
-      <select class="form-input" id="user-role" onchange="onRoleChange()">
-        <option value="cliente">Cliente</option>
-        <option value="psychologist">Psicólogo</option>
-        <option value="admin">Administrador</option>
-      </select>
-    </div>
-    <div class="form-group" id="user-country-group">
-      <label class="form-label">País</label>
-      <input class="form-input" id="user-country" placeholder="País (opcional)">
-    </div>
-    <div class="form-group" id="user-active-group" style="display:none">
-      <label class="form-label">Estado</label>
-      <select class="form-input" id="user-active">
-        <option value="true">Activo</option>
-        <option value="false">Inactivo</option>
-      </select>
-    </div>
-    <div class="login-err" id="user-modal-err" style="text-align:left"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem">
-      <button class="btn-outline" onclick="closeUserModal()">Cancelar</button>
-      <button class="btn-gold" id="user-save-btn" onclick="saveUser()">Guardar</button>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn-primary" id="user-save-btn" onclick="saveUser()">Guardar</button>
     </div>
   </div>
 </div>
