@@ -895,7 +895,7 @@ def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @app.get("/api/dashboard/stats")
-def dashboard_stats(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
+def dashboard_stats(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     total_leads = db.query(func.count(Lead.id)).scalar()
     new_leads = db.query(func.count(Lead.id)).filter(Lead.status == "new").scalar()
     converted = db.query(func.count(Lead.id)).filter(Lead.status == "converted").scalar()
@@ -930,7 +930,7 @@ def list_leads(
     limit: int = Query(20, ge=1, le=100),
     status: Optional[str] = None,
     search: Optional[str] = None,
-    payload: dict = Depends(verify_token),
+    payload: dict = Depends(require_psychologist_or_admin),
     db: Session = Depends(get_db)
 ):
     query = db.query(Lead)
