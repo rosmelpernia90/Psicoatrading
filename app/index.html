@@ -111,7 +111,7 @@ input,select,textarea{font-family:inherit}
 
 /* Sidebar header: logo + lockup serif/sans */
 .sb-brand{display:flex;align-items:center;gap:10px;padding:1.1rem 1.25rem;border-bottom:1px solid var(--border)}
-.sb-brand .sb-logo{width:32px;height:32px;flex-shrink:0;object-fit:contain}
+.sb-brand .sb-logo{width:32px;height:32px;flex-shrink:0;object-fit:cover;border-radius:50%;background:var(--bg-surface);box-shadow:0 0 0 1px rgba(45,212,191,.2)}
 .sb-brand .sb-lockup{display:flex;flex-direction:column;line-height:1.1;min-width:0}
 .sb-brand h3{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;font-weight:600;font-size:1.05rem;color:var(--text);letter-spacing:-.005em;line-height:1.15}
 .sb-brand p{font-size:10px;color:var(--text-muted);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-top:2px}
@@ -146,6 +146,9 @@ input,select,textarea{font-family:inherit}
 .sb-logout:hover{color:var(--danger)}
 
 .main{position:relative;margin-left:var(--sidebar-w);flex:1;padding:2rem;min-height:100vh}
+/* Solo la vista activa se renderiza; el resto se oculta */
+.view-panel{display:none}
+.view-panel.active{display:block}
 /* Marca de agua sutil del logo en la app (esquina inferior derecha, fija) */
 .app-watermark{position:fixed;right:32px;bottom:24px;width:340px;height:340px;
   background:url(logo.png) no-repeat center/contain;opacity:.03;filter:grayscale(.3);
