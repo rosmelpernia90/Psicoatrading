@@ -1,7 +1,7 @@
-"""
-PsicoaTrading — API Backend
+﻿"""
+PsicoaTrading â€” API Backend
 FastAPI + MySQL + SendGrid
-CRM Clínico con embudo de ventas automatizado
+CRM ClÃ­nico con embudo de ventas automatizado
 """
 import os
 import json
@@ -60,7 +60,7 @@ class Psychologist(Base):
     name = Column(String(200), nullable=False)
     email = Column(String(200), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    specialty = Column(String(200), default="Psicología del Trading")
+    specialty = Column(String(200), default="PsicologÃ­a del Trading")
     role = Column(SAEnum("admin", "psychologist"), default="psychologist")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -189,7 +189,7 @@ class PsicologoPaciente(Base):
     ended_at             = Column(DateTime, nullable=True)
     end_reason           = Column(Text, nullable=True)
     # Nota: la columna generada `active_paciente` existe en la BD para el
-    # UNIQUE de "un psicólogo activo por paciente"; no se mapea aquí.
+    # UNIQUE de "un psicÃ³logo activo por paciente"; no se mapea aquÃ­.
 
 
 class PsicologoProfile(Base):
@@ -227,7 +227,7 @@ class CourseModule(Base):
     title         = Column(String(200), nullable=False)
     content_md    = Column(Text)
     is_sequential = Column(Boolean, default=True)  # True: 1,2,3,7 | False: 4,5,6
-    unlocks_diary_question_id = Column(Integer, nullable=True)  # FK lógico a diario (sin constraint por ahora)
+    unlocks_diary_question_id = Column(Integer, nullable=True)  # FK lÃ³gico a diario (sin constraint por ahora)
     created_at    = Column(DateTime, default=datetime.utcnow)
     updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     quizzes       = relationship("CourseQuiz", backref="module", order_by="CourseQuiz.question_order")
@@ -452,10 +452,10 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         email = payload.get("sub")
         if email is None:
-            raise HTTPException(status_code=401, detail="Token inválido")
+            raise HTTPException(status_code=401, detail="Token invÃ¡lido")
         return payload
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        raise HTTPException(status_code=401, detail="Token invÃ¡lido o expirado")
 
 
 def create_token(data: dict):
@@ -470,20 +470,20 @@ def create_token(data: dict):
 # ============================================
 EMAIL_SEQUENCES = [
     {"type": "welcome", "seq": 1, "delay_hours": 0,
-     "subject": "Tu perfil psicológico de trader está listo 🧠",
-     "template": "Hola {name}, gracias por completar el test. Tu perfil es: {profile}. En los próximos días te enviaremos contenido personalizado para mejorar tu psicología de trading."},
+     "subject": "Tu perfil psicolÃ³gico de trader estÃ¡ listo ðŸ§ ",
+     "template": "Hola {name}, gracias por completar el test. Tu perfil es: {profile}. En los prÃ³ximos dÃ­as te enviaremos contenido personalizado para mejorar tu psicologÃ­a de trading."},
     {"type": "deep_dive", "seq": 2, "delay_hours": 48,
-     "subject": "Tu principal desafío como trader (y cómo superarlo)",
-     "template": "Hola {name}, basados en tu perfil ({profile}), tu principal desafío es el control emocional durante las operaciones. Aquí te explicamos cómo trabajamos este aspecto..."},
+     "subject": "Tu principal desafÃ­o como trader (y cÃ³mo superarlo)",
+     "template": "Hola {name}, basados en tu perfil ({profile}), tu principal desafÃ­o es el control emocional durante las operaciones. AquÃ­ te explicamos cÃ³mo trabajamos este aspecto..."},
     {"type": "social_proof", "seq": 3, "delay_hours": 120,
-     "subject": "Cómo Juan pasó de perder 3 fondeos a ser consistente",
-     "template": "Hola {name}, queremos compartirte el caso de un trader que tenía un perfil similar al tuyo..."},
+     "subject": "CÃ³mo Juan pasÃ³ de perder 3 fondeos a ser consistente",
+     "template": "Hola {name}, queremos compartirte el caso de un trader que tenÃ­a un perfil similar al tuyo..."},
     {"type": "free_resource", "seq": 4, "delay_hours": 168,
-     "subject": "Regalo: Guía de autoregulación emocional para traders 📖",
-     "template": "Hola {name}, como parte de nuestro compromiso con tu desarrollo, te compartimos nuestra guía gratuita de autoregulación emocional..."},
+     "subject": "Regalo: GuÃ­a de autoregulaciÃ³n emocional para traders ðŸ“–",
+     "template": "Hola {name}, como parte de nuestro compromiso con tu desarrollo, te compartimos nuestra guÃ­a gratuita de autoregulaciÃ³n emocional..."},
     {"type": "last_call", "seq": 5, "delay_hours": 240,
-     "subject": "Tu sesión diagnóstico gratuita te espera (últimos cupos)",
-     "template": "Hola {name}, hace 10 días completaste tu test y tu perfil reveló áreas importantes de trabajo. ¿Ya agendaste tu sesión diagnóstico gratuita? Los cupos son limitados..."},
+     "subject": "Tu sesiÃ³n diagnÃ³stico gratuita te espera (Ãºltimos cupos)",
+     "template": "Hola {name}, hace 10 dÃ­as completaste tu test y tu perfil revelÃ³ Ã¡reas importantes de trabajo. Â¿Ya agendaste tu sesiÃ³n diagnÃ³stico gratuita? Los cupos son limitados..."},
 ]
 
 
@@ -525,13 +525,13 @@ def send_diary_reminders():
                 msg = Mail(
                     from_email=(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
                     to_emails=client.email,
-                    subject="Tu diario de trading te espera 📖",
+                    subject="Tu diario de trading te espera ðŸ“–",
                     html_content=(
                         f"<p>Hola {client.name},</p>"
-                        f"<p>Llevas 3 días sin escribir en tu diario de trading. "
+                        f"<p>Llevas 3 dÃ­as sin escribir en tu diario de trading. "
                         f"Tomarte 5 minutos para reflexionar sobre tus operaciones "
                         f"puede marcar una gran diferencia en tu desarrollo.</p>"
-                        f"<p><a href='https://app.psicoatrading.online'>Escribir hoy →</a></p>"
+                        f"<p><a href='https://app.psicoatrading.online'>Escribir hoy â†’</a></p>"
                     )
                 )
                 try:
@@ -591,7 +591,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(send_pending_emails, "interval", minutes=5)
     scheduler.add_job(send_diary_reminders, "interval", hours=24)
     scheduler.start()
-    print("✅ PsicoaTrading API running — email scheduler active")
+    print("âœ… PsicoaTrading API running â€” email scheduler active")
     yield
     scheduler.shutdown()
 
@@ -601,7 +601,7 @@ async def lifespan(app: FastAPI):
 # ============================================
 app = FastAPI(
     title="PsicoaTrading API",
-    description="CRM Clínico — Psicología aplicada al Trading",
+    description="CRM ClÃ­nico â€” PsicologÃ­a aplicada al Trading",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -628,7 +628,7 @@ app.add_middleware(
 
 
 # ============================================
-# ENDPOINTS PÚBLICOS
+# ENDPOINTS PÃšBLICOS
 # ============================================
 @app.get("/api/health")
 def health():
@@ -696,7 +696,7 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         "success": True,
         "lead_id": lead.id,
         "test_result_id": test_result.id,
-        "message": "Resultado guardado. Revisa tu email para más información."
+        "message": "Resultado guardado. Revisa tu email para mÃ¡s informaciÃ³n."
     }
 
 
@@ -719,7 +719,7 @@ def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
         db.add(lead)
         print(f"[LEAD] Nuevo lead capturado: {data.email} fuente={source}")
     else:
-        # Actualiza datos si faltan y añade nota
+        # Actualiza datos si faltan y aÃ±ade nota
         if data.phone and not lead.phone:
             lead.phone = data.phone
         if data.country and not lead.country:
@@ -738,7 +738,7 @@ def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
 # ============================================
 @app.post("/api/auth/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    # 1. Psicólogos y admins
+    # 1. PsicÃ³logos y admins
     psych = db.query(Psychologist).filter(Psychologist.email == data.email).first()
     if psych and pwd_context.verify(data.password, psych.password_hash):
         if not psych.is_active:
@@ -768,9 +768,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 @app.post("/api/auth/register", status_code=201)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(Psychologist).filter(Psychologist.email == data.email).first():
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="El email ya estÃ¡ registrado")
     if db.query(Client).filter(Client.email == data.email).first():
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="El email ya estÃ¡ registrado")
     client = Client(
         email=data.email,
         password_hash=pwd_context.hash(data.password),
@@ -790,23 +790,23 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 
 # ============================================
-# SETUP / RECUPERACIÓN DE CONTRASEÑA DEL ADMIN
+# SETUP / RECUPERACIÃ“N DE CONTRASEÃ‘A DEL ADMIN
 # ============================================
 ADMIN_EMAIL = "psicoatrading@gmail.com"
-PASSWORD_UNSET = "!"  # placeholder: contraseña sin establecer
+PASSWORD_UNSET = "!"  # placeholder: contraseÃ±a sin establecer
 
 def validate_password_strength(pw: str):
-    """Mínimo 12 caracteres, mayúscula, minúscula, número y símbolo."""
+    """MÃ­nimo 12 caracteres, mayÃºscula, minÃºscula, nÃºmero y sÃ­mbolo."""
     if len(pw) < 12:
-        return "La contraseña debe tener al menos 12 caracteres"
+        return "La contraseÃ±a debe tener al menos 12 caracteres"
     if not re.search(r"[A-Z]", pw):
-        return "Debe incluir al menos una mayúscula"
+        return "Debe incluir al menos una mayÃºscula"
     if not re.search(r"[a-z]", pw):
-        return "Debe incluir al menos una minúscula"
+        return "Debe incluir al menos una minÃºscula"
     if not re.search(r"[0-9]", pw):
-        return "Debe incluir al menos un número"
+        return "Debe incluir al menos un nÃºmero"
     if not re.search(r"[^A-Za-z0-9]", pw):
-        return "Debe incluir al menos un símbolo"
+        return "Debe incluir al menos un sÃ­mbolo"
     return None
 
 
@@ -824,7 +824,7 @@ def _generate_admin_setup_token(db: Session, admin: "Psychologist") -> str:
 
 @app.get("/api/auth/setup-status")
 def setup_status(db: Session = Depends(get_db)):
-    """Indica si el admin necesita configurar su contraseña."""
+    """Indica si el admin necesita configurar su contraseÃ±a."""
     admin = db.query(Psychologist).filter(Psychologist.role == "admin").first()
     needs = (admin is None) or (admin.password_hash in (None, "", PASSWORD_UNSET))
     return {"needs_setup": needs}
@@ -834,12 +834,12 @@ def setup_status(db: Session = Depends(get_db)):
 def setup_admin(db: Session = Depends(get_db)):
     """
     Setup inicial del admin (una sola vez). Crea psicoatrading@gmail.com si
-    no existe y genera un link para establecer contraseña.
-    Si el admin YA tiene contraseña usable → 403 (no permitir reset público).
+    no existe y genera un link para establecer contraseÃ±a.
+    Si el admin YA tiene contraseÃ±a usable â†’ 403 (no permitir reset pÃºblico).
     """
     admin = db.query(Psychologist).filter(Psychologist.role == "admin").first()
     if admin and admin.password_hash not in (None, "", PASSWORD_UNSET):
-        raise HTTPException(status_code=403, detail="El administrador ya está configurado")
+        raise HTTPException(status_code=403, detail="El administrador ya estÃ¡ configurado")
 
     if not admin:
         admin = Psychologist(
@@ -858,27 +858,27 @@ def setup_admin(db: Session = Depends(get_db)):
             SendGridAPIClient(SENDGRID_API_KEY).send(Mail(
                 from_email=(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
                 to_emails=admin.email,
-                subject="Configura tu contraseña de administrador · PsicoaTrading",
-                html_content=f"<p>Para establecer tu contraseña de administrador, abre este enlace (válido 24h):</p><p><a href='{setup_url}'>{setup_url}</a></p>",
+                subject="Configura tu contraseÃ±a de administrador Â· PsicoaTrading",
+                html_content=f"<p>Para establecer tu contraseÃ±a de administrador, abre este enlace (vÃ¡lido 24h):</p><p><a href='{setup_url}'>{setup_url}</a></p>",
             ))
             return {"sent": True, "email": admin.email}
         except Exception as e:
             print(f"setup-admin email error: {e}")
     # Modo puente: sin proveedor de email configurado
     return {"sent": False, "setup_url": setup_url,
-            "note": "Email no configurado. Usa este link (válido 24h) para establecer la contraseña."}
+            "note": "Email no configurado. Usa este link (vÃ¡lido 24h) para establecer la contraseÃ±a."}
 
 
 @app.post("/api/auth/set-password")
 def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
-    """Establece la contraseña usando un token de setup válido."""
+    """Establece la contraseÃ±a usando un token de setup vÃ¡lido."""
     rec = db.query(AdminSetupToken).filter(AdminSetupToken.token == data.token).first()
     if not rec:
-        raise HTTPException(status_code=400, detail="Token inválido")
+        raise HTTPException(status_code=400, detail="Token invÃ¡lido")
     if rec.used_at is not None:
         raise HTTPException(status_code=400, detail="Este enlace ya fue usado")
     if rec.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="El enlace expiró. Solicita uno nuevo.")
+        raise HTTPException(status_code=400, detail="El enlace expirÃ³. Solicita uno nuevo.")
 
     err = validate_password_strength(data.password)
     if err:
@@ -1025,7 +1025,7 @@ def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = 
 def create_clinical_note(data: ClinicalNoteCreate, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
     psych = db.query(Psychologist).filter(Psychologist.email == payload["sub"]).first()
     if not psych:
-        raise HTTPException(status_code=403, detail="Psicólogo no encontrado")
+        raise HTTPException(status_code=403, detail="PsicÃ³logo no encontrado")
 
     note = ClinicalNote(
         lead_id=data.lead_id,
@@ -1043,7 +1043,7 @@ def create_clinical_note(data: ClinicalNoteCreate, payload: dict = Depends(verif
 def create_session(data: SessionCreate, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
     psych = db.query(Psychologist).filter(Psychologist.email == payload["sub"]).first()
     if not psych:
-        raise HTTPException(status_code=403, detail="Psicólogo no encontrado")
+        raise HTTPException(status_code=403, detail="PsicÃ³logo no encontrado")
 
     session = SessionModel(
         lead_id=data.lead_id,
@@ -1084,7 +1084,7 @@ def get_email_queue(
 
 
 # ============================================
-# ADMIN - GESTIÓN DE USUARIOS
+# ADMIN - GESTIÃ“N DE USUARIOS
 # ============================================
 def require_admin(payload: dict = Depends(verify_token)):
     """Guard: solo permite acceso a usuarios con rol admin."""
@@ -1096,7 +1096,7 @@ def require_admin(payload: dict = Depends(verify_token)):
 def require_psychologist_or_admin(payload: dict = Depends(verify_token)):
     """Guard: rol admin o psychologist."""
     if payload.get("role") not in ("admin", "psychologist"):
-        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clínico")
+        raise HTTPException(status_code=403, detail="Acceso solo para el equipo clÃ­nico")
     return payload
 
 
@@ -1109,7 +1109,7 @@ def get_current_psychologist(payload: dict, db: Session):
 
 
 def get_assigned_client_ids(db: Session, psicologo_id: int) -> set:
-    """IDs de clientes actualmente asignados a un psicólogo (is_active=TRUE)."""
+    """IDs de clientes actualmente asignados a un psicÃ³logo (is_active=TRUE)."""
     rows = db.query(PsicologoPaciente.paciente_id).filter(
         PsicologoPaciente.psicologo_id == psicologo_id,
         PsicologoPaciente.is_active == True,
@@ -1119,9 +1119,9 @@ def get_assigned_client_ids(db: Session, psicologo_id: int) -> set:
 
 def assert_can_access_client(payload: dict, client_id: int, db: Session):
     """
-    REGLA CRÍTICA: admin ve todo; un psicólogo SOLO puede acceder a un
-    paciente asignado a él (validado contra psicologo_paciente en la BD,
-    no contra el JWT). Cualquier otro caso → 403.
+    REGLA CRÃTICA: admin ve todo; un psicÃ³logo SOLO puede acceder a un
+    paciente asignado a Ã©l (validado contra psicologo_paciente en la BD,
+    no contra el JWT). Cualquier otro caso â†’ 403.
     """
     role = payload.get("role")
     if role == "admin":
@@ -1134,13 +1134,13 @@ def assert_can_access_client(payload: dict, client_id: int, db: Session):
             PsicologoPaciente.is_active == True,
         ).first()
         if not link:
-            raise HTTPException(status_code=403, detail="Este paciente no está asignado a ti")
+            raise HTTPException(status_code=403, detail="Este paciente no estÃ¡ asignado a ti")
         return
     raise HTTPException(status_code=403, detail="No autorizado")
 
 
 # ============================================
-# PSICÓLOGOS (perfil + carga)
+# PSICÃ“LOGOS (perfil + carga)
 # ============================================
 def _psico_active_load(db: Session, psicologo_id: int) -> int:
     return db.query(func.count(PsicologoPaciente.id)).filter(
@@ -1168,7 +1168,7 @@ def _psico_to_dict(db: Session, p: "Psychologist") -> dict:
 
 @app.get("/api/psicologos")
 def list_psicologos(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
-    """Admin ve todos; cliente ve solo el suyo asignado; psicólogo se ve a sí mismo."""
+    """Admin ve todos; cliente ve solo el suyo asignado; psicÃ³logo se ve a sÃ­ mismo."""
     role = payload.get("role")
     if role == "admin":
         psicos = db.query(Psychologist).filter(Psychologist.role == "psychologist").all()
@@ -1195,7 +1195,7 @@ def upsert_psicologo_profile(psicologo_id: int, data: PsicologoProfileIn,
                              payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     psico = db.query(Psychologist).filter(Psychologist.id == psicologo_id).first()
     if not psico:
-        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
+        raise HTTPException(status_code=404, detail="PsicÃ³logo no encontrado")
     prof = db.query(PsicologoProfile).filter(PsicologoProfile.psychologist_id == psicologo_id).first()
     if not prof:
         prof = PsicologoProfile(psychologist_id=psicologo_id)
@@ -1211,19 +1211,19 @@ def upsert_psicologo_profile(psicologo_id: int, data: PsicologoProfileIn,
 @app.get("/api/psicologos/{psicologo_id}/load")
 def psicologo_load(psicologo_id: int, payload: dict = Depends(require_psychologist_or_admin),
                    db: Session = Depends(get_db)):
-    # Un psicólogo solo puede consultar su propia carga; admin cualquiera
+    # Un psicÃ³logo solo puede consultar su propia carga; admin cualquiera
     if payload.get("role") == "psychologist":
         me = get_current_psychologist(payload, db)
         if me.id != psicologo_id:
             raise HTTPException(status_code=403, detail="Solo puedes ver tu propia carga")
     psico = db.query(Psychologist).filter(Psychologist.id == psicologo_id).first()
     if not psico:
-        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
+        raise HTTPException(status_code=404, detail="PsicÃ³logo no encontrado")
     return _psico_to_dict(db, psico)
 
 
 # ============================================
-# ASIGNACIONES CLIENTE ↔ PSICÓLOGO (solo admin)
+# ASIGNACIONES CLIENTE â†” PSICÃ“LOGO (solo admin)
 # ============================================
 def _assignment_to_dict(db: Session, a: "PsicologoPaciente") -> dict:
     pac = db.query(Client).filter(Client.id == a.paciente_id).first()
@@ -1249,15 +1249,15 @@ def crear_asignacion(data: AsignacionIn, payload: dict = Depends(require_admin),
     psi = db.query(Psychologist).filter(Psychologist.id == data.psicologo_id,
                                         Psychologist.role == "psychologist").first()
     if not psi:
-        raise HTTPException(status_code=404, detail="Psicólogo no encontrado")
-    # Regla: un psicólogo activo por paciente a la vez
+        raise HTTPException(status_code=404, detail="PsicÃ³logo no encontrado")
+    # Regla: un psicÃ³logo activo por paciente a la vez
     existing = db.query(PsicologoPaciente).filter(
         PsicologoPaciente.paciente_id == data.paciente_id,
         PsicologoPaciente.is_active == True,
     ).first()
     if existing:
         raise HTTPException(status_code=409,
-            detail="Este cliente ya tiene un psicólogo activo. Finaliza la asignación actual primero o usa una solicitud de cambio.")
+            detail="Este cliente ya tiene un psicÃ³logo activo. Finaliza la asignaciÃ³n actual primero o usa una solicitud de cambio.")
     admin = get_current_psychologist(payload, db)
     a = PsicologoPaciente(
         psicologo_id=data.psicologo_id, paciente_id=data.paciente_id,
@@ -1266,7 +1266,7 @@ def crear_asignacion(data: AsignacionIn, payload: dict = Depends(require_admin),
     db.add(a)
     db.commit()
     db.refresh(a)
-    print(f"[AUDIT] Asignación creada: paciente={data.paciente_id} psicologo={data.psicologo_id} por admin={admin.id}")
+    print(f"[AUDIT] AsignaciÃ³n creada: paciente={data.paciente_id} psicologo={data.psicologo_id} por admin={admin.id}")
     return {"success": True, "assignment_id": a.id}
 
 
@@ -1281,18 +1281,18 @@ def finalizar_asignacion(assignment_id: int, data: EndAsignacionIn,
                          payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     a = db.query(PsicologoPaciente).filter(PsicologoPaciente.id == assignment_id).first()
     if not a:
-        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+        raise HTTPException(status_code=404, detail="AsignaciÃ³n no encontrada")
     a.is_active = False
     a.ended_at = datetime.utcnow()
     if data.end_reason:
         a.end_reason = data.end_reason
     db.commit()
-    print(f"[AUDIT] Asignación {assignment_id} finalizada por admin")
+    print(f"[AUDIT] AsignaciÃ³n {assignment_id} finalizada por admin")
     return {"success": True}
 
 
 # ============================================
-# SOLICITUDES DE CAMBIO DE PSICÓLOGO
+# SOLICITUDES DE CAMBIO DE PSICÃ“LOGO
 # ============================================
 @app.post("/api/cambio-psicologo", status_code=201)
 def solicitar_cambio(data: CambioRequestIn, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
@@ -1303,7 +1303,7 @@ def solicitar_cambio(data: CambioRequestIn, payload: dict = Depends(verify_token
         PsicologoPaciente.paciente_id == client.id, PsicologoPaciente.is_active == True,
     ).first()
     if not link:
-        raise HTTPException(status_code=400, detail="No tienes un psicólogo asignado actualmente")
+        raise HTTPException(status_code=400, detail="No tienes un psicÃ³logo asignado actualmente")
     # Evitar solicitudes duplicadas pendientes
     pend = db.query(CambioPsicologoRequest).filter(
         CambioPsicologoRequest.paciente_id == client.id,
@@ -1328,7 +1328,7 @@ def solicitar_cambio(data: CambioRequestIn, payload: dict = Depends(verify_token
 
 @app.get("/api/mi-psicologo")
 def mi_psicologo(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
-    """El cliente obtiene los datos de su psicólogo asignado y su asignación activa."""
+    """El cliente obtiene los datos de su psicÃ³logo asignado y su asignaciÃ³n activa."""
     if payload.get("role") != "cliente":
         raise HTTPException(status_code=403, detail="Solo para clientes")
     client = get_current_client(payload, db)
@@ -1353,7 +1353,7 @@ def mi_psicologo(payload: dict = Depends(verify_token), db: Session = Depends(ge
 
 @app.get("/api/mis-solicitudes")
 def mis_solicitudes(payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
-    """El cliente ve sus propias solicitudes de cambio de psicólogo."""
+    """El cliente ve sus propias solicitudes de cambio de psicÃ³logo."""
     if payload.get("role") != "cliente":
         raise HTTPException(status_code=403, detail="Solo para clientes")
     client = get_current_client(payload, db)
@@ -1403,9 +1403,9 @@ def aprobar_cambio(req_id: int, data: AprobarCambioIn,
     nuevo = db.query(Psychologist).filter(Psychologist.id == data.nuevo_psicologo_id,
                                           Psychologist.role == "psychologist").first()
     if not nuevo:
-        raise HTTPException(status_code=404, detail="Nuevo psicólogo no encontrado")
+        raise HTTPException(status_code=404, detail="Nuevo psicÃ³logo no encontrado")
     admin = get_current_psychologist(payload, db)
-    # 1) Finalizar asignación activa actual del paciente
+    # 1) Finalizar asignaciÃ³n activa actual del paciente
     actual = db.query(PsicologoPaciente).filter(
         PsicologoPaciente.paciente_id == req.paciente_id, PsicologoPaciente.is_active == True,
     ).first()
@@ -1414,7 +1414,7 @@ def aprobar_cambio(req_id: int, data: AprobarCambioIn,
         actual.ended_at = datetime.utcnow()
         actual.end_reason = f"Cambio aprobado (solicitud #{req.id})"
         db.flush()  # liberar el UNIQUE de active_paciente antes de insertar
-    # 2) Crear nueva asignación
+    # 2) Crear nueva asignaciÃ³n
     nueva = PsicologoPaciente(
         psicologo_id=nuevo.id, paciente_id=req.paciente_id,
         assigned_by_admin_id=admin.id, is_active=True,
@@ -1483,12 +1483,12 @@ def admin_list_users(payload: dict = Depends(require_admin), db: Session = Depen
 @app.post("/api/admin/users", status_code=201)
 def admin_create_user(data: AdminUserCreate, payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     if data.role not in VALID_ROLES:
-        raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(VALID_ROLES)}")
+        raise HTTPException(status_code=400, detail=f"Rol invÃ¡lido. Use: {', '.join(VALID_ROLES)}")
 
-    # Email único en ambas tablas
+    # Email Ãºnico en ambas tablas
     if db.query(Psychologist).filter(Psychologist.email == data.email).first() or \
        db.query(Client).filter(Client.email == data.email).first():
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="El email ya estÃ¡ registrado")
 
     if data.role in ("admin", "psychologist"):
         user = Psychologist(
@@ -1529,27 +1529,27 @@ def admin_update_user(
     elif user_type == "client":
         user = db.query(Client).filter(Client.id == user_id).first()
     else:
-        raise HTTPException(status_code=400, detail="Tipo de usuario inválido")
+        raise HTTPException(status_code=400, detail="Tipo de usuario invÃ¡lido")
 
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    # Validar rol si se envía
+    # Validar rol si se envÃ­a
     if data.role is not None:
         if data.role not in VALID_ROLES:
-            raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(VALID_ROLES)}")
-        # Restricción: no cambiar tipo de tabla (un psicólogo no puede pasar a cliente y viceversa)
+            raise HTTPException(status_code=400, detail=f"Rol invÃ¡lido. Use: {', '.join(VALID_ROLES)}")
+        # RestricciÃ³n: no cambiar tipo de tabla (un psicÃ³logo no puede pasar a cliente y viceversa)
         if user_type == "psychologist" and data.role == "cliente":
-            raise HTTPException(status_code=400, detail="Un psicólogo/admin no puede cambiar a rol cliente")
+            raise HTTPException(status_code=400, detail="Un psicÃ³logo/admin no puede cambiar a rol cliente")
         if user_type == "client" and data.role in ("admin", "psychologist"):
             raise HTTPException(status_code=400, detail="Un cliente no puede cambiar a rol admin/psychologist")
         user.role = data.role
 
-    # Email único si cambia
+    # Email Ãºnico si cambia
     if data.email is not None and data.email != user.email:
         if db.query(Psychologist).filter(Psychologist.email == data.email).first() or \
            db.query(Client).filter(Client.email == data.email).first():
-            raise HTTPException(status_code=400, detail="El email ya está registrado")
+            raise HTTPException(status_code=400, detail="El email ya estÃ¡ registrado")
         user.email = data.email
 
     if data.name is not None:
@@ -1582,7 +1582,7 @@ def get_current_client(payload: dict, db: Session) -> Client:
 
 
 def _is_module_available(module_number: int, completed: set) -> bool:
-    """Reglas de progresión MIXTA del curso."""
+    """Reglas de progresiÃ³n MIXTA del curso."""
     if module_number == 1:
         return True
     if module_number == 2:
@@ -1597,7 +1597,7 @@ def _is_module_available(module_number: int, completed: set) -> bool:
 
 
 def _pass_mark(module_number: int) -> tuple:
-    """Devuelve (correctas_necesarias, total) — 80%."""
+    """Devuelve (correctas_necesarias, total) â€” 80%."""
     total = 10 if module_number == 7 else 5
     needed = 8 if module_number == 7 else 4
     return needed, total
@@ -1641,9 +1641,9 @@ def course_get_module(module_id: int, payload: dict = Depends(verify_token), db:
     client = get_current_client(payload, db)
     module = db.query(CourseModule).filter(CourseModule.id == module_id).first()
     if not module:
-        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+        raise HTTPException(status_code=404, detail="MÃ³dulo no encontrado")
 
-    # Calcular módulos completados para validar acceso
+    # Calcular mÃ³dulos completados para validar acceso
     progress_rows = db.query(CourseProgress).filter(CourseProgress.client_id == client.id).all()
     prog_by_module = {p.module_id: p for p in progress_rows}
     all_modules = db.query(CourseModule).all()
@@ -1655,9 +1655,9 @@ def course_get_module(module_id: int, payload: dict = Depends(verify_token), db:
     p = prog_by_module.get(module.id)
     is_completed = p and p.status == "completed"
     if not (is_completed or _is_module_available(module.module_number, completed)):
-        raise HTTPException(status_code=403, detail="Este módulo está bloqueado")
+        raise HTTPException(status_code=403, detail="Este mÃ³dulo estÃ¡ bloqueado")
 
-    # Marcar in_progress si está disponible y aún no se completó
+    # Marcar in_progress si estÃ¡ disponible y aÃºn no se completÃ³
     if not is_completed:
         if not p:
             p = CourseProgress(client_id=client.id, module_id=module.id, status="in_progress")
@@ -1680,7 +1680,7 @@ def course_get_module(module_id: int, payload: dict = Depends(verify_token), db:
                 "id": q.id, "question": q.question, "order": q.question_order,
                 "option_a": q.option_a, "option_b": q.option_b,
                 "option_c": q.option_c, "option_d": q.option_d,
-                # correct_option NO se envía al cliente
+                # correct_option NO se envÃ­a al cliente
             }
             for q in quizzes
         ],
@@ -1696,7 +1696,7 @@ def course_complete_module(module_id: int, data: CompleteModuleRequest,
     client = get_current_client(payload, db)
     module = db.query(CourseModule).filter(CourseModule.id == module_id).first()
     if not module:
-        raise HTTPException(status_code=404, detail="Módulo no encontrado")
+        raise HTTPException(status_code=404, detail="MÃ³dulo no encontrado")
 
     # Validar acceso
     progress_rows = db.query(CourseProgress).filter(CourseProgress.client_id == client.id).all()
@@ -1712,11 +1712,11 @@ def course_complete_module(module_id: int, data: CompleteModuleRequest,
         return {"passed": True, "score": p.quiz_score, "already_completed": True, "next_unlocked": []}
 
     if not _is_module_available(module.module_number, completed_before):
-        raise HTTPException(status_code=403, detail="Este módulo está bloqueado")
+        raise HTTPException(status_code=403, detail="Este mÃ³dulo estÃ¡ bloqueado")
 
     if p and p.attempts >= MAX_QUIZ_ATTEMPTS:
         raise HTTPException(status_code=403,
-                            detail="Alcanzaste el límite de 3 intentos. Contacta a tu psicólogo.")
+                            detail="Alcanzaste el lÃ­mite de 3 intentos. Contacta a tu psicÃ³logo.")
 
     # Calcular score
     quizzes = db.query(CourseQuiz).filter(CourseQuiz.module_id == module.id).all()
@@ -1771,11 +1771,11 @@ def course_progress_overview(client_id: Optional[int] = None,
                              payload: dict = Depends(require_psychologist_or_admin), db: Session = Depends(get_db)):
     clients_q = db.query(Client)
     if client_id is not None:
-        # REGLA CRÍTICA: si pide un cliente puntual, validar acceso
+        # REGLA CRÃTICA: si pide un cliente puntual, validar acceso
         assert_can_access_client(payload, client_id, db)
         clients_q = clients_q.filter(Client.id == client_id)
     elif payload.get("role") == "psychologist":
-        # Un psicólogo (sin client_id) solo ve a SUS pacientes asignados
+        # Un psicÃ³logo (sin client_id) solo ve a SUS pacientes asignados
         psych = get_current_psychologist(payload, db)
         assigned = get_assigned_client_ids(db, psych.id)
         if not assigned:
@@ -1808,7 +1808,7 @@ def course_progress_overview(client_id: Optional[int] = None,
 
 
 # ============================================
-# DIARIO DE TRADING PSICOLÓGICO
+# DIARIO DE TRADING PSICOLÃ“GICO
 # ============================================
 def _entry_to_dict(entry: DiaryEntry, with_answers: bool = False) -> dict:
     d = {
@@ -1918,7 +1918,7 @@ def diary_update_entry(entry_id: int, data: DiaryEntryUpdate,
     if not entry:
         raise HTTPException(status_code=404, detail="Entrada no encontrada")
     if entry.entry_date != date_type.today():
-        raise HTTPException(status_code=403, detail="Solo puedes editar la entrada del día de hoy")
+        raise HTTPException(status_code=403, detail="Solo puedes editar la entrada del dÃ­a de hoy")
 
     if data.traded_today is not None:
         entry.traded_today = data.traded_today
@@ -1943,7 +1943,7 @@ def diary_update_entry(entry_id: int, data: DiaryEntryUpdate,
 @app.get("/api/diary/client/{client_id}")
 def diary_psychologist_view(client_id: int, payload: dict = Depends(require_psychologist_or_admin),
                              db: Session = Depends(get_db)):
-    # REGLA CRÍTICA: el psicólogo solo ve pacientes asignados; admin ve todo
+    # REGLA CRÃTICA: el psicÃ³logo solo ve pacientes asignados; admin ve todo
     assert_can_access_client(payload, client_id, db)
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
