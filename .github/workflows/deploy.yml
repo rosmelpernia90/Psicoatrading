@@ -28,5 +28,9 @@ jobs:
             cp api/schema.sql /var/www/api/schema.sql
             cp api/requirements.txt /var/www/api/requirements.txt
             cd /var/www/api && source venv/bin/activate && pip install -r requirements.txt --quiet
+            python3 -c "import ast; ast.parse(open('main.py', encoding='utf-8').read())" && echo "Sintaxis OK" || (echo "ERROR: sintaxis invalida, abortando"; exit 1)
+            systemctl reset-failed psicoatrading-api 2>/dev/null || true
             systemctl restart psicoatrading-api
+            sleep 4
+            systemctl is-active psicoatrading-api && echo "Servicio activo" || (echo "ERROR: servicio no arranco"; journalctl -u psicoatrading-api --no-pager -n 30; exit 1)
             echo "Deploy completado: $(date)"
