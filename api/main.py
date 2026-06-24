@@ -909,31 +909,77 @@ def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
 
 @app.get("/api/dashboard/stats")
 def dashboard_stats(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
-    total_leads = db.query(func.count(Lead.id)).scalar()
-    new_leads = db.query(func.count(Lead.id)).filter(Lead.status == "new").scalar()
-    converted = db.query(func.count(Lead.id)).filter(Lead.status == "converted").scalar()
-    total_tests = db.query(func.count(TestResult.id)).scalar()
-    pending_emails = db.query(func.count(EmailQueue.id)).filter(EmailQueue.status == "pending").scalar()
-    sent_emails = db.query(func.count(EmailQueue.id)).filter(EmailQueue.status == "sent").scalar()
-    upcoming_sessions = db.query(func.count(SessionModel.id)).filter(
+    total_leads = db.query(func.count(Lead.id)).scalar() or 0
+    new_leads = db.query(func.count(Lead.id)).filter(Lead.status == "new").scalar() or 0
+    converted = db.query(func.count(Lead.id)).filter(Lead.status == "converted").scalar() or 0
+    total_tests = db.query(func.count(TestResult.id)).scalar() or 0
+    tests_a = db.query(func.count(TestResult.id)).filter(TestResult.test_type == "A").scalar() or 0
+    tests_b = db.query(func.count(TestResult.id)).filter(TestResult.test_type == "B").scalar() or 0
+
+    # Alertas clinicas: tests cuyo promedio de dimensiones esta en rangos de riesgo
+    # danger (<=30%) -> requieren atencion; warning (31-50%) -> seguimiento
+    test_avgs = db.query(
+        DimensionScore.test_result_id,
+        func.avg(DimensionScore.percentage).label("avg_pct")
+    ).group_by(DimensionScore.test_result_id).all()
+    alerts_danger = sum(1 for _, p in test_avgs if p is not None and float(p) <= 30)
+    alerts_warning = sum(1 for _, p in test_avgs if p is not None and 30 < float(p) <= 50)
+
+    # Percentil promedio (promedio global de percentages de dimensiones)
+    avg_pct_raw = db.query(func.avg(DimensionScore.percentage)).scalar()
+    avg_percentile = round(float(avg_pct_raw), 1) if avg_pct_raw is not None else 0
+
+    # Sesiones agendadas futuras
+    pending_sessions = db.query(func.count(SessionModel.id)).filter(
         SessionModel.status == "scheduled",
         SessionModel.scheduled_at >= datetime.utcnow()
-    ).scalar()
+    ).scalar() or 0
 
-    # Leads last 7 days
+    # Emails
+    pending_emails = db.query(func.count(EmailQueue.id)).filter(EmailQueue.status == "pending").scalar() or 0
+    sent_emails = db.query(func.count(EmailQueue.id)).filter(EmailQueue.status == "sent").scalar() or 0
+
+    # Leads ultimos 7 dias
     week_ago = datetime.utcnow() - timedelta(days=7)
-    recent_leads = db.query(func.count(Lead.id)).filter(Lead.created_at >= week_ago).scalar()
+    recent_leads = db.query(func.count(Lead.id)).filter(Lead.created_at >= week_ago).scalar() or 0
+
+    # Distribucion por perfil (top 10)
+    profile_rows = db.query(
+        TestResult.profile_name,
+        func.count(TestResult.id).label("count")
+    ).group_by(TestResult.profile_name).order_by(func.count(TestResult.id).desc()).limit(10).all()
+    profile_distribution = [{"name": name or "(sin perfil)", "count": count} for name, count in profile_rows]
+
+    # Distribucion por etapa del funnel (columna BD: stage)
+    funnel_rows = db.query(
+        Lead.funnel_stage,
+        func.count(Lead.id).label("count")
+    ).group_by(Lead.funnel_stage).all()
+    funnel_distribution = [{"stage": stage or "nuevo", "count": count} for stage, count in funnel_rows]
 
     return {
+        # Metricas principales
         "total_leads": total_leads,
         "new_leads": new_leads,
         "converted": converted,
         "conversion_rate": round((converted / total_leads * 100), 1) if total_leads > 0 else 0,
         "total_tests": total_tests,
+        "tests_a": tests_a,
+        "tests_b": tests_b,
+        "alerts_danger": alerts_danger,
+        "alerts_warning": alerts_warning,
+        "avg_percentile": avg_percentile,
+        "pending_sessions": pending_sessions,
+        "emails_sent": sent_emails,
+        "emails_pending": pending_emails,
+        "recent_leads_7d": recent_leads,
+        # Distribuciones
+        "profile_distribution": profile_distribution,
+        "funnel_distribution": funnel_distribution,
+        # Aliases retro-compat (por si algun consumidor viejo los lee)
         "pending_emails": pending_emails,
         "sent_emails": sent_emails,
-        "upcoming_sessions": upcoming_sessions,
-        "recent_leads_7d": recent_leads
+        "upcoming_sessions": pending_sessions,
     }
 
 
