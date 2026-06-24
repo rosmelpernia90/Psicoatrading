@@ -164,17 +164,19 @@ input,select,textarea{font-family:inherit}
 .modal-body{padding:20px 22px;overflow-y:auto;flex:1}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--border);background:var(--bg-surface)}
 /* Marca de agua del logo - centrada en el area de contenido (excluye sidebar) */
+/* border-radius:50% recorta las esquinas blancas del PNG, queda solo el circulo del logo */
 .app-watermark{position:fixed;top:50%;left:calc(50% + var(--sidebar-w)/2);
   transform:translate(-50%,-50%);
-  width:min(560px,55vw);aspect-ratio:1;
-  background:url(logo.png) no-repeat center/contain;
-  opacity:.08;
+  width:min(560px,55vw);aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:url(logo.png) no-repeat center/cover;
+  opacity:.14;
+  filter:saturate(1.15) brightness(1.05);
   pointer-events:none;user-select:none;z-index:0;
   transition:opacity .25s}
 .main > *{position:relative;z-index:1}
 /* Sidebar colapsado a 60px en pantallas estrechas: reajusta el centrado */
 @media(max-width:800px){
-  .app-watermark{left:calc(50% + 30px);width:min(380px,70vw);opacity:.07}
+  .app-watermark{left:calc(50% + 30px);width:min(380px,70vw);opacity:.13}
 }
 @media print{.app-watermark,.login-wrap::before{display:none !important}}
 
