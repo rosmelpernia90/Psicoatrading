@@ -951,7 +951,9 @@ def list_leads(
             {
                 "id": l.id, "name": l.name, "email": l.email, "phone": l.phone,
                 "country": l.country, "status": l.status, "source": l.source,
+                "funnel_stage": l.funnel_stage or "nuevo",
                 "trading_experience": l.trading_experience,
+                "tests_count": len(l.test_results),
                 "created_at": l.created_at.isoformat() if l.created_at else None
             }
             for l in leads
