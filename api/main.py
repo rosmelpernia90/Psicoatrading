@@ -1,4 +1,4 @@
-﻿"""
+"""
 PsicoaTrading â€” API Backend
 FastAPI + MySQL + SendGrid
 CRM ClÃ­nico con embudo de ventas automatizado
