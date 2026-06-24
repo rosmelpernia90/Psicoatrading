@@ -4,23 +4,55 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PsicoaTrading — Panel Clínico</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* Marca turquesa (continuidad con la web pública) — reemplaza el dorado */
-  --gold:#54B7AC;--gold2:#6FD0C4;--gold-soft:rgba(84,183,172,.16);
-  /* Texto: blanco suave sobre oscuro */
-  --ink:#F4F6FA;--ink2:#A7B4C9;--ink3:#6B7A95;
-  /* Superficies oscuras sofisticadas (--white pasa a ser superficie elevada) */
-  --bg:#0B1426;--bg2:#0E1A30;--bg3:#1B2A44;--white:#152136;--border:rgba(148,170,205,.14);
-  /* Éxito/progreso = turquesa (nunca verde de "ganancia") */
-  --green:#54B7AC;--green-bg:rgba(84,183,172,.14);--blue:#6b8fd4;--blue-bg:rgba(107,143,212,.14);
-  /* Alerta clínica = ámbar cálido; "rojo" suavizado a arcilla (nunca rojo agresivo) */
-  --amber:#E0A458;--amber-bg:rgba(224,164,88,.14);--red:#c9756a;--red-bg:rgba(201,117,106,.16);
+  /* ============ Sistema de marca PsicoaTrading ============ */
+  /* Superficies (azul-noche) */
+  --bg-app:#0A0F1A;
+  --bg-surface:#111827;
+  --bg-surface-2:#161E2E;
+  --border:#1F2A3C;
+  --border-strong:#2A3850;
+
+  /* Texto */
+  --text:#E8EDF5;
+  --text-muted:#8A98AE;
+  --text-faint:#5A6675;
+
+  /* Marca (turquesa-menta — accion principal, activos, links) */
+  --accent:#2DD4BF;
+  --accent-hover:#34E5D0;
+  --accent-soft:rgba(45,212,191,0.12);
+
+  /* Degradado del anillo del logo (acentos puntuales: barra activa, KPI destacado) */
+  --brand-gradient:linear-gradient(90deg,#E0352B 0%,#F26A1B 50%,#F5B814 100%);
+
+  /* Estados semanticos */
+  --success:#34D399;--success-soft:rgba(52,211,153,0.12);
+  --warning:#F5B814;--warning-soft:rgba(245,184,20,0.12);
+  --danger:#E0352B;--danger-soft:rgba(224,53,43,0.12);
+  --info:#3B82F6;--info-soft:rgba(59,130,246,0.12);
+
+  /* Layout */
   --sidebar-w:240px;--header-h:64px;
-  --r:12px;--r2:9px;--sh:0 6px 20px rgba(0,0,0,.38),0 1px 2px rgba(0,0,0,.3);
+  --radius:12px;--radius-sm:8px;--radius-pill:999px;
+  --sh:0 1px 2px rgba(0,0,0,.4);
+
+  /* ============ Aliases de retro-compatibilidad ============ */
+  /* Para no romper los ~200 usos legacy en el archivo. NO usar en codigo nuevo. */
+  --gold:var(--accent);--gold2:var(--accent-hover);--gold-soft:var(--accent-soft);
+  --ink:var(--text);--ink2:var(--text-muted);--ink3:var(--text-faint);
+  --bg:var(--bg-app);--bg2:var(--bg-surface);--bg3:var(--bg-surface-2);--white:var(--bg-surface);
+  --green:var(--success);--green-bg:var(--success-soft);
+  --amber:var(--warning);--amber-bg:var(--warning-soft);
+  --red:var(--danger);--red-bg:var(--danger-soft);
+  --blue:var(--info);--blue-bg:var(--info-soft);
+  --r:var(--radius);--r2:var(--radius-sm);
 }
 html{height:100%}
 body{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100%;line-height:1.6;-webkit-font-smoothing:antialiased}
@@ -28,10 +60,13 @@ h1,h2,h3{font-family:'IBM Plex Sans',sans-serif;font-weight:600;letter-spacing:-
 h1{font-size:1.6rem}h2{font-size:1.3rem}h3{font-size:1.1rem}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
-/* Neutraliza toda referencia serif (Playfair) inline o de clase → IBM Plex */
-[style*="Playfair"]{font-family:'IBM Plex Sans',sans-serif !important}
-.detail-name,.kpi-value,.dist-name{font-family:'IBM Plex Sans',sans-serif !important}
-/* Números/métricas en monoespaciada tabular */
+/* Compatibilidad: cualquier inline antiguo con Playfair Display se redirige a Fraunces */
+[style*="Playfair"]{font-family:'Fraunces',Georgia,serif !important;font-variation-settings:"opsz" 96}
+/* Tokens tipograficos */
+.font-display{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;letter-spacing:-.01em}
+.font-ui{font-family:'IBM Plex Sans',system-ui,sans-serif}
+.label-eyebrow{font-family:'IBM Plex Sans',sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600}
+/* Numeros/metricas en monoespaciada tabular (KPIs se sobreescriben en Fase 3) */
 .kpi-value,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
 /* Scrollbar oscuro */
 ::-webkit-scrollbar{width:10px;height:10px}
