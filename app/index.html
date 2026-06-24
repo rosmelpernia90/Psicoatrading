@@ -75,17 +75,32 @@ input,select,textarea{font-family:inherit}
 ::selection{background:var(--gold-soft);color:var(--ink)}
 
 /* LOGIN */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,rgba(45,212,191,.08) 0%,var(--bg-app) 60%)}
-.login-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 18px 48px rgba(0,0,0,.46)}
+.login-wrap{position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;
+  background:
+    radial-gradient(900px 600px at 70% 20%, rgba(45,212,191,.06), transparent 60%),
+    var(--bg-app)}
+/* Marca de agua del logo en el fondo del login (esquina inferior derecha) */
+.login-wrap::before{content:"";position:absolute;right:-70px;bottom:-50px;width:420px;height:420px;
+  background:url(logo.png) no-repeat center/contain;opacity:.04;filter:grayscale(.2);
+  pointer-events:none;user-select:none;z-index:0}
+.login-card{position:relative;z-index:1;background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 18px 48px rgba(0,0,0,.46)}
+
+/* Logo mark: circular, sin caja, con halo turquesa y anillo de marca fino */
 .login-logo{text-align:center;margin-bottom:1.75rem}
-.login-logo h2{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;font-size:1.55rem;font-weight:600;color:var(--text);letter-spacing:-.015em;margin-top:.4rem}
-.login-logo p{font-size:.72rem;color:var(--text-muted);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-top:4px}
+.login-logo-mark{display:inline-block;width:78px;height:78px;padding:3px;border-radius:50%;
+  background:linear-gradient(135deg,#E0352B,#F26A1B,#F5B814);
+  box-shadow:0 0 0 1px rgba(45,212,191,.25), 0 0 36px rgba(45,212,191,.18);
+  margin-bottom:.85rem}
+.login-logo-mark img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--bg-surface)}
+.login-logo h2{font-family:'Fraunces',Georgia,serif;font-variation-settings:"opsz" 96;font-size:1.55rem;font-weight:600;color:var(--text);letter-spacing:-.015em;margin-top:.2rem}
+.login-logo p{font-size:11px;color:var(--text-muted);letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-top:4px}
+
 .login-field{margin-bottom:1rem}
 .login-field label{display:block;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:6px}
-.login-field input{width:100%;min-height:40px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:.92rem;color:var(--text);background:var(--bg-surface-2);outline:none;transition:border-color .15s,box-shadow .15s}
+.login-field input{width:100%;min-height:44px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:.92rem;color:var(--text);background:var(--bg-surface-2);outline:none;transition:border-color .15s,box-shadow .15s}
 .login-field input::placeholder{color:var(--text-faint)}
 .login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.login-btn{width:100%;padding:13px;background:var(--accent);color:#06231F;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s;margin-top:.75rem}
+.login-btn{width:100%;min-height:44px;padding:13px;background:var(--accent);color:#06231F;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s;margin-top:.75rem}
 .login-btn:hover{background:var(--accent-hover)}
 .login-err{color:var(--danger);font-size:.85rem;margin-top:.6rem;text-align:center;min-height:1.2em}
 
@@ -130,7 +145,13 @@ input,select,textarea{font-family:inherit}
 .sb-logout{margin-top:.6rem;font-size:.78rem;color:var(--text-muted);background:none;border:none;padding:0;font-weight:500;cursor:pointer;transition:color .15s}
 .sb-logout:hover{color:var(--danger)}
 
-.main{margin-left:var(--sidebar-w);flex:1;padding:2rem;min-height:100vh}
+.main{position:relative;margin-left:var(--sidebar-w);flex:1;padding:2rem;min-height:100vh}
+/* Marca de agua sutil del logo en la app (esquina inferior derecha, fija) */
+.app-watermark{position:fixed;right:32px;bottom:24px;width:340px;height:340px;
+  background:url(logo.png) no-repeat center/contain;opacity:.03;filter:grayscale(.3);
+  pointer-events:none;user-select:none;z-index:0}
+.main > *{position:relative;z-index:1}
+@media print{.app-watermark,.login-wrap::before{display:none !important}}
 
 /* KPI CARDS */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:1.5rem}
@@ -317,7 +338,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 <div class="login-wrap" id="login-view">
   <div class="login-card">
     <div class="login-logo">
-      <img src="logo.png" alt="PsicoaTrading" style="width:88px;height:88px;object-fit:contain;margin-bottom:.75rem">
+      <span class="login-logo-mark"><img src="logo.png" alt="PsicoaTrading"></span>
       <h2>PsicoaTrading</h2>
       <p>Panel Clínico</p>
     </div>
@@ -336,6 +357,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 
 <!-- ===== APP ===== -->
 <div class="app" id="app-view">
+  <!-- Marca de agua sutil del logo -->
+  <div class="app-watermark" aria-hidden="true"></div>
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sb-brand">
