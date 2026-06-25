@@ -604,7 +604,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <!-- ENTRADA -->
         <div class="price-card reveal" data-d="1">
           <span class="price-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Trader Consciente</span>
-          <div class="price-row"><span class="price-val"><sup>$</sup>79</span></div>
+          <div class="price-row"><span class="price-val"><sup>$</sup>79</span><span class="price-old">$100</span></div>
           <div class="price-period">USD / mes</div>
           <p class="price-tag">El punto de entrada. Psicología en comunidad.</p>
           <ul class="price-list" id="price-list-a"></ul>
@@ -616,7 +616,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <!-- DESTACADO -->
         <div class="price-card featured reveal" data-d="2">
           <span class="price-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z"/></svg>Asesoría Personalizada</span>
-          <div class="price-row"><span class="price-val"><sup>$</sup>499</span></div>
+          <div class="price-row"><span class="price-val"><sup>$</sup>399</span><span class="price-old">$499</span></div>
           <div class="price-period">USD / mes</div>
           <p class="price-tag">Acompañamiento clínico 1 a 1 para operar con disciplina.</p>
           <ul class="price-list" id="price-list-b"></ul>
@@ -630,10 +630,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
           <span class="price-badge">Transformación Total — 12 Semanas</span>
           <div class="price-row">
             <span class="price-val"><sup>$</sup>1,990</span>
-            <span class="price-old">$2,497</span>
-          </div>
-          <div class="price-row" style="justify-content:center;margin-top:6px;margin-bottom:.3rem">
-            <span class="price-save">↓ Ahorra $507</span>
+            <span class="price-old">$2,499</span>
           </div>
           <div class="price-period">USD · pago único</div>
           <p class="price-tag">USD · pago único. Programa intensivo de 12 semanas para una transformación real.</p>
@@ -741,14 +738,12 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
       </div>
       <div class="cont-form-card reveal" data-d="1">
         <h4>Solicitar información</h4>
-        <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="cf-name" type="text" placeholder="Tu nombre"></div>
-        <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" type="email" placeholder="tu@email.com"></div>
-        <div class="fg"><label class="fl">WhatsApp (opcional)</label><input class="fi" id="cf-wa" type="tel" placeholder="+57 300 000 0000"></div>
-        <div class="fg"><label class="fl">País</label><select class="fi" id="cf-country"><option value="">Selecciona tu país</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div>
-        <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi" id="cf-exp"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
-        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" id="cf-notes" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
-        <div id="cf-msg" style="font-size:.85rem;min-height:1.2em;margin-bottom:.25rem"></div>
-        <button class="fsub" id="cf-btn" onclick="submitContactForm()">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" placeholder="Tu nombre"></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="tu@email.com"></div>
+        <div class="fg"><label class="fl">País</label><select class="fi"><option value="">Selecciona tu país</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div>
+        <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
+        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
+        <button class="fsub" onclick="alert('Mensaje enviado. Te contactaremos en menos de 24 horas.')">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
   </div></section>
@@ -806,15 +801,14 @@ function sp(name){
   fill('price-list-a',[
     'Curso completo “Trader Consciente” (7 módulos clínicos)',
     'Diario de Trading Psicológico digital integrado en la app',
-    '4 sesiones grupales en vivo al mes (vía Zoom)',
-    'Acceso a la librería de clases grabadas dentro de la app',
+    '1 sesión grupal en vivo al mes (vía Zoom)',
     'Comunidad privada de soporte entre sesiones',
     'Test psicológico inicial incluido',
     'Seguimiento de progreso en tu panel personal'
   ]);
   fill('price-list-b',[
     'Todo lo incluido en Trader Consciente',
-    '4 sesiones 1 a 1 semanales (60 min c/u) con psicólogo especializado',
+    '2 sesiones 1 a 1 semanales (60 min c/u) con psicólogo especializado',
     'Evaluación psicológica clínica inicial completa',
     'Seguimiento de operaciones en tiempo real con tu psicólogo',
     'Diario de trading psicológico revisado en sesión',
@@ -916,18 +910,10 @@ function renderStep(){
 function renderUF(){
   document.getElementById('tbody').innerHTML='<div class="uf-card"><h3>Antes de comenzar</h3><p>Información confidencial, solo para tu reporte personalizado.</p><div class="fg2"><div class="fg"><label class="fl">Nombre</label><input class="fi" id="fn" type="text" placeholder="Tu nombre"></div><div class="fg"><label class="fl">Email</label><input class="fi" id="fe" type="email" placeholder="tu@email.com"></div><div class="fg"><label class="fl">País</label><select class="fi" id="fc"><option value="">Seleccionar...</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div><div class="fg"><label class="fl">Experiencia</label><select class="fi" id="fexp"><option value="">Seleccionar...</option><option>Menos de 6 meses</option><option>6m-1 año</option><option>1-3 años</option><option>Más de 3 años</option></select></div><div class="fg full"><label class="fl">Mercado principal</label><select class="fi" id="fm"><option value="">Seleccionar...</option><option>Forex</option><option>Criptomonedas</option><option>Acciones</option><option>Futuros/Índices</option><option>Varios</option></select></div></div></div><button class="btn-nxt" onclick="subUF()">Comenzar evaluación '+ICN.arrBtn+'</button>';
 }
-async function subUF(){
+function subUF(){
   const n=document.getElementById('fn').value.trim(),e=document.getElementById('fe').value.trim();
   if(!n||!e){alert('Ingresa tu nombre y email para continuar.');return;}
-  const ud={name:n,email:e,country:document.getElementById('fc').value,exp:document.getElementById('fexp').value,mkt:document.getElementById('fm').value};
-  ST.ud=ud;
-  // Captura de lead al registrarse para el test
-  try{
-    await fetch('https://psicoatrading.online/api/contact',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:ud.name,email:ud.email,country:ud.country,trading_experience:ud.exp,source:'test_web'})
-    });
-  }catch(err){}
+  ST.ud={name:n,email:e,country:document.getElementById('fc').value,exp:document.getElementById('fexp').value,mkt:document.getElementById('fm').value};
   ST.qi=0;renderStep();
 }
 function renderQ(i){
@@ -944,23 +930,7 @@ function calcRes(){
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
   showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
 }
-async function saveTestResult(r){
-  if(!r.ud?.email) return;
-  const dims=Object.entries(r.ds).map(([code,score])=>({dimension_code:code,score,max_score:r.tid==='A'?21:14}));
-  try{
-    await fetch('https://psicoatrading.online/api/test-results',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name:r.ud.name,email:r.ud.email,country:r.ud.country||'',
-        test_type:r.tid,profile_name:r.prof.name,profile_code:r.prof.risk,
-        total_score:r.sc,max_score:r.maxSc,percentile:r.pct,
-        trading_experience:r.ud.exp||'',main_market:r.ud.mkt||'',
-        risk_level:r.prof.risk,dimensions:dims
-      })
-    });
-  }catch(err){}
-}
-function showRes(r){saveTestResult(r);
+function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;
   const rc=r.prof.risk,rl={good:'Perfil Saludable',moderate:'Atención Moderada',warning:'Intervención Recomendada',danger:'Alerta Clínica'}[rc];
   const bp={good:'rb-good',moderate:'rb-moderate',warning:'rb-warning',danger:'rb-danger'}[rc];
@@ -994,44 +964,6 @@ function showRes(r){saveTestResult(r);
 }
 
 observeReveals();
-
-async function submitContactForm(){
-  const name=document.getElementById('cf-name').value.trim();
-  const email=document.getElementById('cf-email').value.trim();
-  const msg=document.getElementById('cf-msg');
-  const btn=document.getElementById('cf-btn');
-  if(!name||!email){msg.style.color='#e0a458';msg.textContent='Por favor ingresa tu nombre y email.';return;}
-  btn.disabled=true;btn.textContent='Enviando…';msg.textContent='';
-  try{
-    const r=await fetch('https://psicoatrading.online/api/contact',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name,email,
-        phone:document.getElementById('cf-wa').value.trim()||null,
-        country:document.getElementById('cf-country').value||null,
-        trading_experience:document.getElementById('cf-exp').value||null,
-        notes:document.getElementById('cf-notes').value.trim()||null,
-        source:'contact_form'
-      })
-    });
-    if(r.ok){
-      msg.style.color='#54B7AC';
-      msg.textContent='✓ Solicitud enviada. Te contactaremos en menos de 24 horas.';
-      ['cf-name','cf-email','cf-wa','cf-notes'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('cf-country').value='';
-      document.getElementById('cf-exp').value='';
-      btn.textContent='Enviado ✓';
-    } else {
-      const d=await r.json().catch(()=>({}));
-      msg.style.color='#e0a458';
-      msg.textContent=d.detail||'No se pudo enviar. Inténtalo de nuevo.';
-      btn.disabled=false;btn.textContent='Enviar solicitud';
-    }
-  }catch(e){
-    msg.style.color='#e0a458';msg.textContent='Error de conexión. Inténtalo de nuevo.';
-    btn.disabled=false;btn.textContent='Enviar solicitud';
-  }
-}
 </script>
 </body>
 </html>
