@@ -1260,62 +1260,84 @@ function renderLeads(leads) {
 async function openLead(id) {
   showView('detail');
   const el = document.getElementById('detail-content');
-  el.innerHTML = '<div class="loading">Cargando historial...</div>';
+  // Skeleton estructurado: header + tabs + cards (en vez de un vacio con el watermark dominando)
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+      <div style="flex:1;min-width:240px">
+        <span class="skel skel-line lg" style="width:240px;margin-bottom:10px"></span><br>
+        <span class="skel skel-line sm" style="width:180px"></span>
+      </div>
+      <span class="skel" style="width:90px;height:32px;border-radius:9999px"></span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem">
+      ${[140,110,130,120].map(w=>`<span class="skel" style="width:${w}px;height:28px;border-radius:8px"></span>`).join('')}
+    </div>
+    <div class="card">
+      <span class="skel skel-line sm" style="width:140px;margin-bottom:14px"></span>
+      ${[1,2,3,4].map(()=>`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="skel skel-line sm" style="width:160px"></span><span class="skel skel-line sm" style="width:60px"></span></div><span class="skel" style="width:100%;height:6px;border-radius:3px;display:block"></span></div>`).join('')}
+    </div>`;
   const data = await api('/api/leads/' + id);
-  if (!data) { el.innerHTML = '<div class="loading">Error cargando paciente</div>'; return; }
-  const riskPill = { good: 'pill-green', moderate: 'pill-blue', warning: 'pill-amber', danger: 'pill-red' };
-  const riskLabel = { good: 'Saludable', moderate: 'Moderado', warning: 'Intervención', danger: 'Alerta' };
+  if (!data) { el.innerHTML = '<div class="empty-state"><div class="empty-title">No se pudo cargar el paciente</div><div class="empty-msg">Revisa tu conexión o intenta de nuevo.</div></div>'; return; }
+  // Normalizar respuesta del backend (envuelta en `lead`) - tolera ambas formas
+  const L = data.lead || data;
+  const tests    = data.test_results   || data.tests    || [];
+  const notes    = data.clinical_notes || data.notes    || [];
+  const sessions = data.sessions       || [];
+  const emails   = data.emails         || [];
 
-  // Build dimension bars
   function dimBars(dims) {
-    return dims.map(d => {
-      const pct = Math.round(d.score / d.max * 100);
+    return (dims || []).map(d => {
+      const maxV = d.max_score || d.max || 1;
+      const pct = Math.round((d.score / maxV) * 100);
       const cls = pct >= 70 ? 'fill-green' : pct >= 45 ? 'fill-blue' : pct >= 25 ? 'fill-amber' : 'fill-red';
-      return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${d.max}</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>`;
+      return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${maxV}</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>`;
     }).join('');
   }
 
   // Timeline items
   const timelineItems = [
-    ...data.test_results.map(t => ({
-      date: t.completed_at, type: 'test',
-      html: `<div class="tl-type">Test ${t.test_type} — ${t.test_type === 'A' ? 'Perfil Psicológico' : 'Auditoría Plan'}</div>
-             <div class="tl-profile">${t.profile_name} · <span class="pill ${riskPill[t.risk_level]}">${riskLabel[t.risk_level]}</span></div>
-             <div style="font-size:.82rem;color:var(--ink2);margin:6px 0">Puntuación: ${t.scaled_score}/${t.max_score} (${t.percentile}%)</div>
-             ${dimBars(t.dimensions)}`
-    })),
-    ...data.notes.map(n => ({
+    ...tests.map(t => {
+      const score = t.total_score ?? t.scaled_score;
+      const max = t.max_score ?? 100;
+      return {
+        date: t.completed_at, type: 'test',
+        html: `<div class="tl-type">Test ${t.test_type} — ${t.test_type === 'A' ? 'Perfil Psicológico' : 'Auditoría Plan'}</div>
+               <div class="tl-profile">${t.profile_name || '(sin perfil)'}</div>
+               <div style="font-size:.82rem;color:var(--text-muted);margin:6px 0">Puntuación: ${score}${max ? '/' + max : ''}</div>
+               ${dimBars(t.dimensions)}`
+      };
+    }),
+    ...notes.map(n => ({
       date: n.created_at, type: 'note',
-      html: `<div class="tl-type" style="color:var(--blue)">Nota clínica — ${n.psychologist || 'Psicólogo'}</div>
-             ${n.diagnosis ? '<div style="font-size:.85rem;margin:4px 0"><strong>Diagnóstico:</strong> ' + n.diagnosis + '</div>' : ''}
-             ${n.intervention_plan ? '<div style="font-size:.85rem;margin:4px 0"><strong>Plan:</strong> ' + n.intervention_plan + '</div>' : ''}
-             ${n.follow_up ? '<div style="font-size:.85rem;margin:4px 0"><strong>Seguimiento:</strong> ' + n.follow_up + '</div>' : ''}`
+      html: `<div class="tl-type" style="color:var(--info)">Nota clínica${n.note_type ? ' — ' + n.note_type : ''}</div>
+             ${n.content ? '<div style="font-size:.88rem;color:var(--text);margin:6px 0;white-space:pre-wrap">' + n.content + '</div>' : ''}`
     })),
-    ...data.sessions.map(s => ({
+    ...sessions.map(s => ({
       date: s.scheduled_at, type: 'session',
-      html: `<div class="tl-type" style="color:var(--green)">Sesión ${s.type} — ${s.status}</div>`
+      html: `<div class="tl-type" style="color:var(--success)">Sesión ${s.session_type || s.type || ''} — ${s.status}</div>
+             ${s.duration_minutes ? '<div style="font-size:.82rem;color:var(--text-muted)">Duración: ' + s.duration_minutes + ' min</div>' : ''}`
     }))
   ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   // Email status
-  const emailRows = data.emails?.map(e => {
-    const statusPill = { pending: 'pill-amber', sent: 'pill-green', failed: 'pill-red', cancelled: 'pill-blue' };
-    return `<tr><td>Paso ${e.step}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status]}">${e.status}</span></td><td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`;
-  }).join('') || '<tr><td colspan="4" style="color:var(--ink3)">Sin emails programados</td></tr>';
+  const statusPill = { pending: 'pill-warning', sent: 'pill-success', failed: 'pill-danger', cancelled: 'pill-info' };
+  const emailRows = emails.length
+    ? emails.map(e => `<tr><td>Paso ${e.sequence_number ?? e.step ?? '—'}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status] || 'pill-neutral'}">${e.status}</span></td><td class="td-muted">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="td-muted" style="text-align:center;padding:2rem">Sin emails programados</td></tr>';
 
   el.innerHTML = `
     <div class="detail-header">
       <div>
         <button class="detail-back" onclick="showView('leads')">← Volver a pacientes</button>
-        <div class="detail-name" style="margin-top:.75rem">${data.name}</div>
-        <div class="detail-meta">${data.email} · ${data.country || ''} · ${data.experience || ''} · ${data.market || ''}</div>
+        <div class="detail-name" style="margin-top:.75rem">${L.name || '(sin nombre)'}</div>
+        <div class="detail-meta">${L.email || ''}${L.country ? ' · ' + L.country : ''}${L.trading_experience ? ' · ' + L.trading_experience : ''}</div>
       </div>
-      <span class="pill ${riskPill[data.funnel_stage === 'client' ? 'good' : 'gold'] || 'pill-gold'}" style="font-size:.8rem">${data.funnel_stage}</span>
+      ${L.funnel_stage ? `<span class="pill pill-accent" style="font-size:.8rem">${L.funnel_stage}</span>` : (L.status ? `<span class="pill pill-info" style="font-size:.8rem">${L.status}</span>` : '')}
     </div>
 
     <div class="detail-tabs">
       <button class="tab-btn active" onclick="switchTab('timeline',this)">Línea de tiempo</button>
-      <button class="tab-btn" onclick="switchTab('emails-tab',this)">Emails (${data.emails?.length || 0})</button>
+      <button class="tab-btn" onclick="switchTab('emails-tab',this)">Emails (${emails.length})</button>
       <button class="tab-btn" onclick="switchTab('note-form',this)">+ Nota clínica</button>
     </div>
 
@@ -1347,7 +1369,7 @@ async function openLead(id) {
           <label class="form-label">Seguimiento</label>
           <textarea class="form-input" id="note-followup" placeholder="Próximos pasos, tareas para el paciente..."></textarea>
         </div>
-        <button class="btn-gold" onclick="saveNote(${data.id})">Guardar nota</button>
+        <button class="btn-primary" onclick="saveNote(${L.id})">Guardar nota</button>
       </div>
     </div>
   `;
