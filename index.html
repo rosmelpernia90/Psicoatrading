@@ -429,6 +429,27 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   .fg2{grid-template-columns:1fr}
   .annc-in{font-size:.76rem;padding:8px 1rem}
 }
+
+/* ===== MODAL DE CONTACTO (exito/error) ===== */
+.cm-backdrop{position:fixed;inset:0;background:rgba(31,28,20,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:1.25rem;animation:cm-fade .2s ease-out}
+.cm-backdrop.open{display:flex}
+@keyframes cm-fade{from{opacity:0}to{opacity:1}}
+.cm-card{background:var(--white);border:1px solid var(--border);border-radius:18px;padding:2.5rem 2.25rem 2rem;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(31,28,20,.28);position:relative;animation:cm-pop .26s cubic-bezier(.2,.9,.3,1.2);text-align:center}
+@keyframes cm-pop{from{transform:translateY(10px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.cm-close{position:absolute;top:14px;right:14px;width:36px;height:36px;background:transparent;border:none;border-radius:50%;color:var(--ink3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.cm-close:hover{background:var(--bg2);color:var(--ink)}
+.cm-icon{width:64px;height:64px;border-radius:50%;background:var(--gold-soft);border:1px solid var(--gold-line);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.1rem}
+.cm-icon.error{background:#fde9e3;border-color:#f3b8a4;color:#c54720}
+.cm-title{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:600;color:var(--ink);line-height:1.2;margin-bottom:.6rem;letter-spacing:-.01em}
+.cm-msg{font-family:'Plus Jakarta Sans',sans-serif;font-size:.95rem;color:var(--ink2);line-height:1.6;margin:0 auto 1.5rem;max-width:38ch}
+.cm-msg.error{color:#c54720}
+.cm-actions{display:flex;gap:10px;flex-direction:column}
+@media(min-width:480px){.cm-actions{flex-direction:row;justify-content:center}}
+.cm-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:12px 22px;border-radius:var(--r-xs);font-family:inherit;font-size:.92rem;font-weight:600;cursor:pointer;transition:all .2s var(--ease);border:1px solid transparent;text-decoration:none}
+.cm-btn-primary{background:var(--gold);color:#fff;border-color:var(--gold);box-shadow:0 6px 18px rgba(15,143,122,.28)}
+.cm-btn-primary:hover{background:var(--gold2);border-color:var(--gold2);transform:translateY(-1px)}
+.cm-btn-secondary{background:transparent;color:var(--ink);border-color:var(--border)}
+.cm-btn-secondary:hover{border-color:var(--ink2);background:var(--bg2)}
 </style>
 </head>
 <body>
@@ -738,12 +759,13 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
       </div>
       <div class="cont-form-card reveal" data-d="1">
         <h4>Solicitar información</h4>
-        <div class="fg"><label class="fl">Nombre completo</label><input class="fi" type="text" placeholder="Tu nombre"></div>
-        <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="tu@email.com"></div>
-        <div class="fg"><label class="fl">País</label><select class="fi"><option value="">Selecciona tu país</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div>
-        <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
-        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
-        <button class="fsub" onclick="alert('Mensaje enviado. Te contactaremos en menos de 24 horas.')">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="cf-name" type="text" placeholder="Tu nombre" required></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" type="email" placeholder="tu@email.com" required></div>
+        <div class="fg"><label class="fl">WhatsApp <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input class="fi" id="cf-wa" type="tel" placeholder="+57 300 123 4567"></div>
+        <div class="fg"><label class="fl">País</label><select class="fi" id="cf-country"><option value="">Selecciona tu país</option><option>Colombia</option><option>México</option><option>Venezuela</option><option>España</option><option>Argentina</option><option>Chile</option><option>Otro</option></select></div>
+        <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi" id="cf-exp"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
+        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" id="cf-notes" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
+        <button class="fsub" id="cf-submit-btn" onclick="submitContactForm()">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
   </div></section>
@@ -770,9 +792,152 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   </div>
 </footer>
 
+<!-- ===== MODAL DE CONFIRMACIÓN DE CONTACTO ===== -->
+<div id="contact-modal" class="cm-backdrop" role="dialog" aria-labelledby="cm-title" aria-modal="true">
+  <div class="cm-card">
+    <button class="cm-close" onclick="closeContactModal('home')" aria-label="Cerrar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <!-- Variante éxito -->
+    <div id="cm-success-view">
+      <div class="cm-icon" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 class="cm-title" id="cm-title">Recibimos tu solicitud</h3>
+      <p class="cm-msg">Un psicólogo de PsicoaTrading te contactará en menos de 24 horas a tu email y WhatsApp. Mientras tanto, te invitamos a hacer nuestro Test Psicológico gratuito para conocer tu perfil.</p>
+      <div class="cm-actions">
+        <button class="cm-btn cm-btn-primary" onclick="closeContactModal('test-sel')">
+          Hacer Test Gratuito
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <button class="cm-btn cm-btn-secondary" onclick="closeContactModal('home')">Volver al inicio</button>
+      </div>
+    </div>
+    <!-- Variante error -->
+    <div id="cm-error-view" style="display:none">
+      <div class="cm-icon error" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+      </div>
+      <h3 class="cm-title">No pudimos enviar tu solicitud</h3>
+      <p class="cm-msg error">Por favor intenta de nuevo o escríbenos por Instagram <a href="https://instagram.com/psicoatrading" target="_blank" rel="noopener" style="color:#c54720;text-decoration:underline">@psicoatrading</a></p>
+      <div class="cm-actions">
+        <button class="cm-btn cm-btn-primary" onclick="retryContactSubmit()">Intentar de nuevo</button>
+        <button class="cm-btn cm-btn-secondary" onclick="closeContactModal('home')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 function closeMob(){document.getElementById('mob-menu').classList.remove('open');}
 const PAGES=['home','test-sel','test','results','blog','contact'];
+
+/* ===== FORMULARIO DE CONTACTO + MODAL DE CONFIRMACIÓN ===== */
+const CONTACT_API = 'https://psicoatrading.online/api/contact';
+
+function _emailValido(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+
+async function submitContactForm(){
+  const name    = document.getElementById('cf-name').value.trim();
+  const email   = document.getElementById('cf-email').value.trim();
+  const wa      = document.getElementById('cf-wa').value.trim();
+  const country = document.getElementById('cf-country').value;
+  const exp     = document.getElementById('cf-exp').value;
+  const notes   = document.getElementById('cf-notes').value.trim();
+  const btn     = document.getElementById('cf-submit-btn');
+
+  // Validación mínima — los required del HTML5 ya bloquean en navegadores modernos
+  if(!name || !email){
+    alert('Por favor completa al menos tu nombre y email.');
+    return;
+  }
+  if(!_emailValido(email)){
+    alert('Revisa el formato de tu email.');
+    return;
+  }
+
+  // Estado de envío
+  const txtOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = 'Enviando…';
+
+  try{
+    const r = await fetch(CONTACT_API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, email,
+        whatsapp: wa || undefined,
+        phone: wa || undefined,        // compat con backend (acepta ambos)
+        country: country || undefined,
+        trading_experience: exp || undefined,
+        notes: notes || undefined,
+        message: notes || undefined,   // compat
+        source: 'web_contact_form'
+      })
+    });
+    const ok = r.ok;
+    btn.disabled = false;
+    btn.innerHTML = txtOriginal;
+    if(ok){
+      // Limpia el form para evitar reenvíos accidentales
+      ['cf-name','cf-email','cf-wa','cf-country','cf-exp','cf-notes'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.value='';
+      });
+      _openContactModal('success');
+    } else {
+      _openContactModal('error');
+    }
+  } catch(err){
+    btn.disabled = false;
+    btn.innerHTML = txtOriginal;
+    _openContactModal('error');
+  }
+}
+
+function _openContactModal(kind){
+  document.getElementById('cm-success-view').style.display = (kind==='success') ? '' : 'none';
+  document.getElementById('cm-error-view').style.display   = (kind==='error')   ? '' : 'none';
+  const m = document.getElementById('contact-modal');
+  m.classList.add('open');
+  // Bloquea scroll de la página detrás
+  document.body.style.overflow = 'hidden';
+}
+
+function closeContactModal(dest){
+  const m = document.getElementById('contact-modal');
+  m.classList.remove('open');
+  document.body.style.overflow = '';
+  // Navegar según el destino indicado por el botón
+  if(dest === 'test-sel'){
+    sp('test-sel');
+  } else {
+    sp('home');
+  }
+}
+
+function retryContactSubmit(){
+  // Cerrar modal sin navegar y reintentar envío
+  const m = document.getElementById('contact-modal');
+  m.classList.remove('open');
+  document.body.style.overflow = '';
+  submitContactForm();
+}
+
+// Cerrar modal con tecla Escape (cuenta como "cerrar" → redirige a home)
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape' && document.getElementById('contact-modal')?.classList.contains('open')){
+    closeContactModal('home');
+  }
+});
+
+// Cerrar modal al click en el backdrop (fuera de la card)
+document.addEventListener('click', (e) => {
+  const m = document.getElementById('contact-modal');
+  if(m && m.classList.contains('open') && e.target === m){
+    closeContactModal('home');
+  }
+});
 function sp(name){
   PAGES.forEach(p=>{const el=document.getElementById('page-'+p);if(el)el.classList.toggle('active',p===name);});
   ['home','test','blog','contact'].forEach(k=>{const nl=document.getElementById('nl-'+k);if(nl)nl.classList.toggle('active',k===name||(k==='test'&&name==='test-sel'));});
