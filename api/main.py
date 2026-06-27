@@ -290,6 +290,49 @@ class DiaryEntryAnswer(Base):
     answer_text = Column(Text)
 
 
+class LeadSubmission(Base):
+    """
+    Una fila por cada interaccion del visitante con un formulario publico.
+    Permite que un mismo lead acumule N submissions (contacto + tests + compras...)
+    y diferenciar el origen exacto de cada lead.
+    """
+    __tablename__ = "lead_submissions"
+    id                  = Column(Integer, primary_key=True, index=True)
+    lead_id             = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True)
+    source              = Column(SAEnum(
+        "formulario_contacto",
+        "formulario_agendar_sesion",
+        "test_a_perfil_psicologico",
+        "test_b_plan_trading",
+        "newsletter_suscripcion",
+        "compra_plan_trader_consciente",
+        "compra_plan_asesoria_personalizada",
+        "compra_plan_transformacion_total",
+    ), nullable=False)
+    # Datos comunes a cualquier formulario
+    whatsapp            = Column(String(30), nullable=True)
+    pais                = Column(String(50), nullable=True)
+    # Formulario de contacto / agendar
+    experiencia_trading = Column(String(50), nullable=True)
+    principal_desafio   = Column(Text, nullable=True)
+    intent              = Column(String(40), nullable=True)   # "informacion" | "agendar"
+    # Tests
+    test_a_score        = Column(Integer, nullable=True)
+    test_a_perfil       = Column(String(100), nullable=True)
+    test_b_score        = Column(Integer, nullable=True)
+    test_b_perfil       = Column(String(100), nullable=True)
+    test_respuestas     = Column(JSON, nullable=True)
+    # Pagos (preparado para Bold/Stripe)
+    plan_comprado       = Column(String(50), nullable=True)
+    monto_pagado        = Column(DECIMAL(10, 2), nullable=True)
+    moneda              = Column(String(3), nullable=True)
+    pasarela            = Column(String(20), nullable=True)
+    transaccion_id      = Column(String(100), nullable=True)
+    # Body completo del POST por trazabilidad
+    raw_data            = Column(JSON, nullable=True)
+    created_at          = Column(DateTime, default=datetime.utcnow)
+
+
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
@@ -434,6 +477,40 @@ class SessionCreate(BaseModel):
     scheduled_at: str
     duration_minutes: int = 45
     notes: Optional[str] = None
+
+
+# ============================================
+# SCHEMAS - formularios publicos (lead_submissions)
+# ============================================
+class FormContactSubmit(BaseModel):
+    name: str
+    email: EmailStr
+    whatsapp: Optional[str] = None
+    pais: Optional[str] = None
+    experiencia_trading: Optional[str] = None
+    principal_desafio: Optional[str] = None
+    intent: Optional[str] = None   # "informacion" | "agendar"
+
+
+class FormTestSubmit(BaseModel):
+    name: str
+    email: EmailStr
+    pais: Optional[str] = None
+    experiencia_trading: Optional[str] = None
+    main_market: Optional[str] = None
+    test_type: str                       # "A" | "B" - el endpoint que recibe valida
+    score: int
+    perfil: str
+    profile_code: Optional[str] = None
+    respuestas: Optional[dict] = None
+    dimensions: Optional[List[dict]] = None
+    max_score: Optional[float] = None
+    percentile: Optional[float] = None
+
+
+class FormNewsletterSubmit(BaseModel):
+    email: EmailStr
+    name: Optional[str] = None
 
 
 # ============================================
@@ -700,6 +777,24 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         )
         db.add(ds)
 
+    # Registrar tambien en lead_submissions (origen exacto del lead)
+    src_map = {"A": "test_a_perfil_psicologico", "B": "test_b_plan_trading"}
+    sub_kwargs = {
+        "lead_id": lead.id,
+        "source": src_map.get(data.test_type, "test_a_perfil_psicologico"),
+        "pais": data.country,
+        "experiencia_trading": data.trading_experience,
+        "test_respuestas": data.answers,
+        "raw_data": data.model_dump() if hasattr(data, "model_dump") else None,
+    }
+    if data.test_type == "A":
+        sub_kwargs["test_a_score"]  = int(data.total_score) if data.total_score else None
+        sub_kwargs["test_a_perfil"] = data.profile_name
+    else:
+        sub_kwargs["test_b_score"]  = int(data.total_score) if data.total_score else None
+        sub_kwargs["test_b_perfil"] = data.profile_name
+    db.add(LeadSubmission(**sub_kwargs))
+
     db.commit()
 
     # Schedule email sequence
@@ -709,41 +804,168 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         "success": True,
         "lead_id": lead.id,
         "test_result_id": test_result.id,
-        "message": "Resultado guardado. Revisa tu email para mÃ¡s informaciÃ³n."
+        "message": "Resultado guardado. Revisa tu email para mas informacion."
     }
 
 
 @app.post("/api/contact")
 def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
-    note_text = data.message or data.notes or ""
-    source = data.source or "contact_form"
-    lead = db.query(Lead).filter(Lead.email == data.email).first()
+    """Alias retro-compat: redirige al nuevo /api/forms/contact pero acepta el schema viejo."""
+    wa = getattr(data, "phone", None)
+    notes_text = data.notes or data.message
+    payload = FormContactSubmit(
+        name=data.name, email=data.email,
+        whatsapp=wa, pais=data.country,
+        experiencia_trading=data.trading_experience,
+        principal_desafio=notes_text,
+        intent=None,
+    )
+    return form_contact(payload, db)
+
+
+# ============================================
+# ENDPOINTS PUBLICOS - FORMULARIOS (lead_submissions)
+# Cada formulario publico tiene su endpoint propio para registrar
+# correctamente el origen del lead en lead_submissions.
+# ============================================
+def _get_or_create_lead(db: Session, *, name: str, email: str, whatsapp: Optional[str] = None,
+                       country: Optional[str] = None, trading_experience: Optional[str] = None,
+                       initial_source: str = "web_form",
+                       initial_stage: str = "nuevo") -> "Lead":
+    """Busca un lead por email; si no existe lo crea. Devuelve el lead persistido (con id)."""
+    lead = db.query(Lead).filter(Lead.email == email).first()
     if not lead:
         lead = Lead(
-            name=data.name,
-            email=data.email,
-            phone=data.phone,
-            country=data.country,
-            trading_experience=data.trading_experience,
-            source=source,
-            notes=note_text,
-            funnel_stage="nuevo",
+            name=name, email=email,
+            whatsapp=whatsapp, phone=whatsapp,   # `phone` queda como espejo por retro-compat
+            country=country,
+            trading_experience=trading_experience,
+            source=initial_source,
+            funnel_stage=initial_stage,
         )
         db.add(lead)
-        print(f"[LEAD] Nuevo lead capturado: {data.email} fuente={source}")
+        db.flush()
+        print(f"[LEAD] Nuevo lead capturado: {email} fuente={initial_source}")
     else:
-        # Actualiza datos si faltan y aÃ±ade nota
-        if data.phone and not lead.phone:
-            lead.phone = data.phone
-        if data.country and not lead.country:
-            lead.country = data.country
-        if data.trading_experience and not lead.trading_experience:
-            lead.trading_experience = data.trading_experience
-        if note_text:
-            lead.notes = (lead.notes or "") + f"\n\n[{source} {datetime.utcnow().strftime('%Y-%m-%d')}]: {note_text}"
-        print(f"[LEAD] Lead actualizado: {data.email}")
+        # Enriquecer campos vacios sin pisar lo existente
+        if name and not lead.name: lead.name = name
+        if whatsapp:
+            if not lead.whatsapp: lead.whatsapp = whatsapp
+            if not lead.phone:    lead.phone    = whatsapp
+        if country and not lead.country: lead.country = country
+        if trading_experience and not lead.trading_experience:
+            lead.trading_experience = trading_experience
+        lead.last_contact_at = datetime.utcnow()
+    return lead
+
+
+@app.post("/api/forms/contact")
+def form_contact(data: FormContactSubmit, db: Session = Depends(get_db)):
+    """Formulario publico de Contacto / Agendar Sesion. Distingue intencion via `intent`."""
+    lead = _get_or_create_lead(
+        db, name=data.name, email=data.email, whatsapp=data.whatsapp,
+        country=data.pais, trading_experience=data.experiencia_trading,
+        initial_source="formulario_contacto",
+    )
+    # Decidir el source segun el intent
+    src = "formulario_agendar_sesion" if (data.intent == "agendar") else "formulario_contacto"
+    sub = LeadSubmission(
+        lead_id=lead.id, source=src,
+        whatsapp=data.whatsapp, pais=data.pais,
+        experiencia_trading=data.experiencia_trading,
+        principal_desafio=data.principal_desafio,
+        intent=data.intent,
+        raw_data=data.model_dump(),
+    )
+    db.add(sub)
     db.commit()
-    return {"success": True, "message": "Mensaje recibido. Te contactaremos pronto."}
+    return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
+            "message": "Recibimos tu solicitud. Te contactaremos pronto."}
+
+
+@app.post("/api/forms/test-a")
+def form_test_a(data: FormTestSubmit, db: Session = Depends(get_db)):
+    return _submit_test(db, data, expected_type="A",
+                       source="test_a_perfil_psicologico")
+
+
+@app.post("/api/forms/test-b")
+def form_test_b(data: FormTestSubmit, db: Session = Depends(get_db)):
+    return _submit_test(db, data, expected_type="B",
+                       source="test_b_plan_trading")
+
+
+def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, source: str):
+    if data.test_type.upper() != expected_type:
+        raise HTTPException(status_code=400,
+            detail=f"test_type debe ser '{expected_type}' en este endpoint")
+    lead = _get_or_create_lead(
+        db, name=data.name, email=data.email,
+        country=data.pais, trading_experience=data.experiencia_trading,
+        initial_source="web_test",
+        initial_stage="test_completed",
+    )
+    if lead.funnel_stage in (None, "nuevo"):
+        lead.funnel_stage = "test_completed"
+
+    # Tambien creamos el TestResult clasico (mantiene compatibilidad con el panel actual)
+    test_result = TestResult(
+        lead_id=lead.id, test_type=expected_type,
+        profile_name=data.perfil, profile_code=data.profile_code or "",
+        total_score=data.score, answers_json=data.respuestas,
+    )
+    db.add(test_result)
+    db.flush()
+    for dim in (data.dimensions or []):
+        sc = float(dim.get("score", 0))
+        mx = float(dim.get("max_score", dim.get("max", 100)) or 100)
+        pct = dim.get("percentage") or (round(sc / mx * 100, 1) if mx else 0)
+        db.add(DimensionScore(
+            test_result_id=test_result.id,
+            dimension_name=dim.get("name", dim.get("dimension_code", "")),
+            dimension_code=dim.get("code", dim.get("dimension_code", "")),
+            score=sc, max_score=mx, percentage=pct,
+        ))
+
+    # Registrar tambien en lead_submissions
+    sub_kwargs = {
+        "lead_id": lead.id, "source": source,
+        "pais": data.pais, "experiencia_trading": data.experiencia_trading,
+        "test_respuestas": data.respuestas,
+        "raw_data": data.model_dump(),
+    }
+    if expected_type == "A":
+        sub_kwargs["test_a_score"]  = data.score
+        sub_kwargs["test_a_perfil"] = data.perfil
+    else:
+        sub_kwargs["test_b_score"]  = data.score
+        sub_kwargs["test_b_perfil"] = data.perfil
+    sub = LeadSubmission(**sub_kwargs)
+    db.add(sub)
+    db.commit()
+
+    # Disparar secuencia de emails (preserva el comportamiento actual)
+    schedule_email_sequence(db, lead.id, lead.name, data.perfil)
+
+    return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
+            "test_result_id": test_result.id,
+            "message": "Resultado guardado. Revisa tu email para mas informacion."}
+
+
+@app.post("/api/forms/newsletter")
+def form_newsletter(data: FormNewsletterSubmit, db: Session = Depends(get_db)):
+    lead = _get_or_create_lead(
+        db, name=(data.name or "(suscriptor)"), email=data.email,
+        initial_source="newsletter",
+    )
+    sub = LeadSubmission(
+        lead_id=lead.id, source="newsletter_suscripcion",
+        raw_data=data.model_dump(),
+    )
+    db.add(sub)
+    db.commit()
+    return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
+            "message": "Suscripcion confirmada."}
 
 
 # ============================================
@@ -989,18 +1211,45 @@ def list_leads(
     limit: int = Query(20, ge=1, le=100),
     status: Optional[str] = None,
     search: Optional[str] = None,
+    source: Optional[str] = None,           # filtro por origen (lead_submissions.source)
+    country: Optional[str] = None,          # filtro por pais
+    funnel_stage: Optional[str] = None,     # filtro por etapa
     payload: dict = Depends(require_psychologist_or_admin),
     db: Session = Depends(get_db)
 ):
     query = db.query(Lead)
-    if status:
-        query = query.filter(Lead.status == status)
+    if status:       query = query.filter(Lead.status == status)
+    if country:      query = query.filter(Lead.country == country)
+    if funnel_stage: query = query.filter(Lead.funnel_stage == funnel_stage)
+    if source:
+        # Filtro por origen: lead que tenga al menos una submission con ese source
+        query = query.filter(Lead.id.in_(
+            db.query(LeadSubmission.lead_id).filter(LeadSubmission.source == source)
+        ))
     if search:
         query = query.filter(
             (Lead.name.ilike(f"%{search}%")) | (Lead.email.ilike(f"%{search}%"))
         )
     total = query.count()
     leads = query.order_by(Lead.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+
+    # Pre-cargar latest_source y submissions_count para evitar N+1
+    lead_ids = [l.id for l in leads]
+    submissions_meta = {}
+    if lead_ids:
+        # Cuenta por lead
+        for lid, n in db.query(LeadSubmission.lead_id, func.count(LeadSubmission.id))\
+                       .filter(LeadSubmission.lead_id.in_(lead_ids))\
+                       .group_by(LeadSubmission.lead_id).all():
+            submissions_meta.setdefault(lid, {})["count"] = n
+        # Source mas reciente por lead (subquery: max(created_at))
+        latest = db.query(LeadSubmission.lead_id, LeadSubmission.source, LeadSubmission.created_at)\
+                   .filter(LeadSubmission.lead_id.in_(lead_ids))\
+                   .order_by(LeadSubmission.lead_id, LeadSubmission.created_at.desc())\
+                   .all()
+        for lid, src, _ in latest:
+            if "latest_source" not in submissions_meta.setdefault(lid, {}):
+                submissions_meta[lid]["latest_source"] = src
 
     return {
         "total": total,
@@ -1009,15 +1258,26 @@ def list_leads(
         "leads": [
             {
                 "id": l.id, "name": l.name, "email": l.email, "phone": l.phone,
+                "whatsapp": l.whatsapp,
                 "country": l.country, "status": l.status, "source": l.source,
                 "funnel_stage": l.funnel_stage or "nuevo",
                 "trading_experience": l.trading_experience,
                 "tests_count": len(l.test_results),
+                "submissions_count": submissions_meta.get(l.id, {}).get("count", 0),
+                "latest_source": submissions_meta.get(l.id, {}).get("latest_source"),
                 "created_at": l.created_at.isoformat() if l.created_at else None
             }
             for l in leads
         ]
     }
+
+
+@app.get("/api/forms/sources")
+def list_form_sources(payload: dict = Depends(require_psychologist_or_admin), db: Session = Depends(get_db)):
+    """Lista los origenes (sources) disponibles para el dropdown del filtro."""
+    rows = db.query(LeadSubmission.source, func.count(LeadSubmission.id))\
+             .group_by(LeadSubmission.source).all()
+    return {"sources": [{"value": s, "count": n} for s, n in rows]}
 
 
 @app.get("/api/leads/{lead_id}")
@@ -1076,6 +1336,38 @@ def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = 
                 "sent_at": e.sent_at.isoformat() if e.sent_at else None
             }
             for e in emails
+        ]
+    }
+
+
+@app.get("/api/leads/{lead_id}/submissions")
+def list_lead_submissions(lead_id: int, payload: dict = Depends(require_psychologist_or_admin),
+                          db: Session = Depends(get_db)):
+    """Historial cronologico (mas reciente arriba) de todas las interacciones del lead
+    con formularios publicos: contacto/agendar, tests A/B, newsletter y compras (futuro)."""
+    rows = (db.query(LeadSubmission)
+              .filter(LeadSubmission.lead_id == lead_id)
+              .order_by(LeadSubmission.created_at.desc())
+              .all())
+    return {
+        "lead_id": lead_id,
+        "total": len(rows),
+        "submissions": [
+            {
+                "id": s.id,
+                "source": s.source,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "whatsapp": s.whatsapp,
+                "pais": s.pais,
+                "experiencia_trading": s.experiencia_trading,
+                "principal_desafio": s.principal_desafio,
+                "intent": s.intent,
+                "test_a_score": s.test_a_score, "test_a_perfil": s.test_a_perfil,
+                "test_b_score": s.test_b_score, "test_b_perfil": s.test_b_perfil,
+                "test_respuestas": s.test_respuestas,
+                "plan_comprado": s.plan_comprado, "monto_pagado": float(s.monto_pagado) if s.monto_pagado else None,
+                "moneda": s.moneda, "pasarela": s.pasarela, "transaccion_id": s.transaccion_id,
+            } for s in rows
         ]
     }
 
