@@ -430,6 +430,20 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   .annc-in{font-size:.76rem;padding:8px 1rem}
 }
 
+/* ===== RADIO DE INTENT (Quiero informacion / Quiero agendar) ===== */
+.intent-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.intent-card{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--white);border:1px solid var(--border);border-radius:var(--r-xs);cursor:pointer;transition:all .18s var(--ease);color:var(--ink2);position:relative}
+.intent-card svg{flex-shrink:0;color:var(--ink3);margin-top:2px;transition:color .18s}
+.intent-card:hover{border-color:var(--gold);background:var(--gold-soft)}
+.intent-card:hover svg{color:var(--gold)}
+.intent-card input[type="radio"]{position:absolute;opacity:0;pointer-events:none}
+.intent-card:has(input:checked){border-color:var(--gold);background:var(--gold-soft);box-shadow:0 0 0 1px var(--gold)}
+.intent-card:has(input:checked) svg{color:var(--gold)}
+.intent-card:has(input:checked) .intent-title{color:var(--ink)}
+.intent-title{font-size:.86rem;font-weight:600;color:var(--ink);line-height:1.2}
+.intent-sub{font-size:.74rem;color:var(--ink3);margin-top:2px;line-height:1.35}
+@media(max-width:520px){.intent-grid{grid-template-columns:1fr}}
+
 /* ===== MODAL DE CONTACTO (exito/error) ===== */
 .cm-backdrop{position:fixed;inset:0;background:rgba(31,28,20,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:1.25rem;animation:cm-fade .2s ease-out}
 .cm-backdrop.open{display:flex}
@@ -759,6 +773,29 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
       </div>
       <div class="cont-form-card reveal" data-d="1">
         <h4>Solicitar información</h4>
+
+        <div class="fg" role="radiogroup" aria-labelledby="cf-intent-label">
+          <label class="fl" id="cf-intent-label">¿Qué quieres hacer?</label>
+          <div class="intent-grid">
+            <label class="intent-card">
+              <input type="radio" name="cf-intent" value="informacion" checked>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <div>
+                <div class="intent-title">Quiero información</div>
+                <div class="intent-sub">Conocer el programa de acompañamiento</div>
+              </div>
+            </label>
+            <label class="intent-card">
+              <input type="radio" name="cf-intent" value="agendar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
+              <div>
+                <div class="intent-title">Quiero agendar</div>
+                <div class="intent-sub">Reservar una sesión de valoración</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="cf-name" type="text" placeholder="Tu nombre" required></div>
         <div class="fg"><label class="fl">Email</label><input class="fi" id="cf-email" type="email" placeholder="tu@email.com" required></div>
         <div class="fg"><label class="fl">WhatsApp <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input class="fi" id="cf-wa" type="tel" placeholder="+57 300 123 4567"></div>
@@ -833,7 +870,7 @@ function closeMob(){document.getElementById('mob-menu').classList.remove('open')
 const PAGES=['home','test-sel','test','results','blog','contact'];
 
 /* ===== FORMULARIO DE CONTACTO + MODAL DE CONFIRMACIÓN ===== */
-const CONTACT_API = 'https://psicoatrading.online/api/contact';
+const CONTACT_API = 'https://psicoatrading.online/api/forms/contact';
 
 function _emailValido(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 
@@ -844,6 +881,7 @@ async function submitContactForm(){
   const country = document.getElementById('cf-country').value;
   const exp     = document.getElementById('cf-exp').value;
   const notes   = document.getElementById('cf-notes').value.trim();
+  const intent  = document.querySelector('input[name="cf-intent"]:checked')?.value || 'informacion';
   const btn     = document.getElementById('cf-submit-btn');
 
   // Validación mínima — los required del HTML5 ya bloquean en navegadores modernos
@@ -859,7 +897,7 @@ async function submitContactForm(){
   // Persistir los datos para pre-llenar el formulario del test (continuidad de proceso)
   try{
     sessionStorage.setItem('pt_contact_data', JSON.stringify({
-      name, email, whatsapp: wa, country, trading_experience: exp, notes
+      name, email, whatsapp: wa, country, trading_experience: exp, notes, intent
     }));
   }catch(e){}
 
@@ -875,12 +913,10 @@ async function submitContactForm(){
       body: JSON.stringify({
         name, email,
         whatsapp: wa || undefined,
-        phone: wa || undefined,        // compat con backend (acepta ambos)
-        country: country || undefined,
-        trading_experience: exp || undefined,
-        notes: notes || undefined,
-        message: notes || undefined,   // compat
-        source: 'web_contact_form'
+        pais: country || undefined,
+        experiencia_trading: exp || undefined,
+        principal_desafio: notes || undefined,
+        intent: intent
       })
     });
     const ok = r.ok;
