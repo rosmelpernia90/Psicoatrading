@@ -359,6 +359,38 @@ select.form-input{cursor:pointer;appearance:none;background-image:url("data:imag
 .dist-fill{height:100%;border-radius:3px;background:var(--gold)}
 .dist-pct{font-size:.72rem;color:var(--ink3)}
 
+/* FILTROS de la lista de pacientes */
+.leads-filters{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:10px;margin-bottom:1rem}
+.leads-filters select.form-input{min-height:38px;padding:8px 30px 8px 12px;font-size:.84rem}
+@media(max-width:800px){.leads-filters{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.leads-filters{grid-template-columns:1fr}}
+
+/* Badges por origen (sources de lead_submissions) - usan paleta semantica del sistema */
+.origin-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-family:'IBM Plex Sans',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.02em;line-height:1.5;white-space:nowrap}
+.origin-pill svg{width:11px;height:11px;stroke-width:2}
+.origin-contact{background:var(--info-soft);color:var(--info)}
+.origin-agendar{background:var(--accent-soft);color:var(--accent)}
+.origin-test-a{background:var(--success-soft);color:var(--success)}
+.origin-test-b{background:rgba(168,85,247,.12);color:#a855f7}
+.origin-newsletter{background:var(--bg-surface-2);color:var(--text-muted);border:1px solid var(--border)}
+.origin-purchase{background:var(--warning-soft);color:var(--warning)}
+.origin-count{font-size:.68rem;color:var(--text-muted);margin-left:6px;font-weight:500}
+
+/* Tarjetas del historial de interacciones del lead */
+.history-card{background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;transition:border-left-color .15s}
+.history-card.is-contact{border-left-color:var(--info)}
+.history-card.is-agendar{border-left-color:var(--accent)}
+.history-card.is-test-a{border-left-color:var(--success)}
+.history-card.is-test-b{border-left-color:#a855f7}
+.history-card.is-newsletter{border-left-color:var(--text-muted)}
+.history-card.is-purchase{border-left-color:var(--warning)}
+.history-card-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap}
+.history-card-date{font-size:.74rem;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.history-card-body{font-size:.86rem;color:var(--text);line-height:1.55}
+.history-card-body .row{margin-top:6px}
+.history-card-body .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:600;margin-right:6px}
+.history-card .btn-sm{margin-top:8px}
+
 /* SEARCH */
 .search-bar{display:flex;gap:10px;margin-bottom:1rem}
 .search-input{flex:1;min-height:40px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:.92rem;color:var(--text);outline:none;background:var(--bg-surface-2);transition:border-color .15s,box-shadow .15s}
@@ -518,11 +550,29 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
         <input class="search-input" id="lead-search" placeholder="Buscar por nombre o email..." oninput="filterLeads()">
         <button class="btn-gold" onclick="loadLeads()">Actualizar</button>
       </div>
+      <!-- Filtros -->
+      <div class="leads-filters">
+        <select class="form-input" id="filter-source" onchange="applyServerFilters()">
+          <option value="">Origen — todos</option>
+        </select>
+        <select class="form-input" id="filter-country" onchange="applyServerFilters()">
+          <option value="">País — todos</option>
+        </select>
+        <select class="form-input" id="filter-stage" onchange="applyServerFilters()">
+          <option value="">Etapa — todas</option>
+          <option value="nuevo">Nuevo</option>
+          <option value="test_completed">Test completado</option>
+          <option value="email_sequence">Email sequence</option>
+          <option value="session_booked">Sesión agendada</option>
+          <option value="client">Cliente</option>
+        </select>
+        <button class="btn-secondary btn-sm" onclick="clearFilters()" style="white-space:nowrap">Limpiar</button>
+      </div>
       <div class="card">
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Etapa</th><th>Tests</th><th>Fecha</th></tr></thead>
-            <tbody id="leads-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+            <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Origen</th><th>Etapa</th><th>Tests</th><th>Fecha</th></tr></thead>
+            <tbody id="leads-tbody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -754,6 +804,20 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
     <div style="margin-top:1.25rem;text-align:right;display:flex;align-items:center;gap:1rem;justify-content:flex-end">
       <span id="pp-msg" style="font-size:.85rem"></span>
       <button id="pp-save-btn" class="btn-gold" onclick="savePsicoProfile()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL RESPUESTAS COMPLETAS DEL TEST ===== -->
+<div id="test-answers-modal" class="modal-backdrop" style="display:none" role="dialog" aria-labelledby="tam-title" aria-modal="true">
+  <div class="modal-card" style="max-width:640px">
+    <div class="modal-header">
+      <h2 id="tam-title" class="modal-title">Respuestas completas</h2>
+      <button class="modal-close" onclick="closeTestAnswersModal()" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body" id="tam-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeTestAnswersModal()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1226,11 +1290,73 @@ async function loadDashboard() {
 // ============================================================
 // LEADS
 // ============================================================
+// Mapping de sources → clase CSS de badge + label corto + icono SVG
+const ORIGIN_META = {
+  formulario_contacto:                { cls: 'origin-contact',    label: 'Contacto',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>' },
+  formulario_agendar_sesion:          { cls: 'origin-agendar',    label: 'Agendar',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>' },
+  test_a_perfil_psicologico:          { cls: 'origin-test-a',     label: 'Test A',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4.5 4.5 0 0 0-4.5 4.5c0 1 .3 1.9.8 2.7"/><path d="M12 2a4.5 4.5 0 0 1 4.5 4.5c0 1-.3 1.9-.8 2.7"/><path d="M12 8v14"/></svg>' },
+  test_b_plan_trading:                { cls: 'origin-test-b',     label: 'Test B',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12.5" y="7" width="3" height="10" rx="1"/><rect x="18" y="13" width="3" height="4" rx="1"/></svg>' },
+  newsletter_suscripcion:             { cls: 'origin-newsletter', label: 'Newsletter',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 8h16"/></svg>' },
+  compra_plan_trader_consciente:      { cls: 'origin-purchase',   label: 'Compra TC',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>' },
+  compra_plan_asesoria_personalizada: { cls: 'origin-purchase',   label: 'Compra AP',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>' },
+  compra_plan_transformacion_total:   { cls: 'origin-purchase',   label: 'Compra TT',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>' },
+};
+
+function renderOriginPill(source, extraCount) {
+  if (!source) return '<span style="color:var(--text-faint);font-size:.78rem">—</span>';
+  const meta = ORIGIN_META[source] || { cls: 'origin-newsletter', label: source.slice(0, 12), icon: '' };
+  const extra = extraCount > 1 ? `<span class="origin-count">+${extraCount - 1}</span>` : '';
+  return `<span class="origin-pill ${meta.cls}">${meta.icon}${meta.label}</span>${extra}`;
+}
+
 async function loadLeads() {
-  const data = await api('/api/leads?limit=100');
+  const params = new URLSearchParams({ limit: '100' });
+  const src = document.getElementById('filter-source')?.value;
+  const ctry = document.getElementById('filter-country')?.value;
+  const stg = document.getElementById('filter-stage')?.value;
+  if (src) params.set('source', src);
+  if (ctry) params.set('country', ctry);
+  if (stg) params.set('funnel_stage', stg);
+  const data = await api('/api/leads?' + params.toString());
   if (!data) return;
   allLeads = data.leads || [];
   renderLeads(allLeads);
+  loadFilterOptions();   // primera carga pobla los selects
+}
+
+// Carga las opciones del filtro de Origen y de País desde el backend (una vez)
+let _filtersLoaded = false;
+async function loadFilterOptions() {
+  if (_filtersLoaded) return;
+  _filtersLoaded = true;
+  // Origenes con count
+  const data = await api('/api/forms/sources');
+  if (data?.sources) {
+    const sel = document.getElementById('filter-source');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Origen — todos</option>' +
+      data.sources.map(s => {
+        const meta = ORIGIN_META[s.value] || { label: s.value };
+        return `<option value="${s.value}">${meta.label} (${s.count})</option>`;
+      }).join('');
+    sel.value = current;
+  }
+  // Países: derivar de los leads cargados
+  const countries = [...new Set(allLeads.map(l => l.country).filter(Boolean))].sort();
+  const ctrySel = document.getElementById('filter-country');
+  const currentCtry = ctrySel.value;
+  ctrySel.innerHTML = '<option value="">País — todos</option>' +
+    countries.map(c => `<option value="${c}">${c}</option>`).join('');
+  ctrySel.value = currentCtry;
+}
+
+function applyServerFilters() { loadLeads(); }
+function clearFilters() {
+  document.getElementById('filter-source').value = '';
+  document.getElementById('filter-country').value = '';
+  document.getElementById('filter-stage').value = '';
+  document.getElementById('lead-search').value = '';
+  loadLeads();
 }
 
 function filterLeads() {
@@ -1240,17 +1366,18 @@ function filterLeads() {
 }
 
 function renderLeads(leads) {
-  const pillMap = { new: 'pill-blue', test_completed: 'pill-gold', email_sequence: 'pill-amber', session_booked: 'pill-green', client: 'pill-green', inactive: 'pill-red' };
-  const stageLabels = { new: 'Nuevo', test_completed: 'Test', email_sequence: 'Emails', session_booked: 'Sesión', client: 'Cliente', inactive: 'Inactivo' };
+  const pillMap = { new: 'pill-info', test_completed: 'pill-accent', email_sequence: 'pill-warning', session_booked: 'pill-success', client: 'pill-success', inactive: 'pill-danger', nuevo: 'pill-info' };
+  const stageLabels = { new: 'Nuevo', nuevo: 'Nuevo', test_completed: 'Test', email_sequence: 'Emails', session_booked: 'Sesión', client: 'Cliente', inactive: 'Inactivo' };
   const tbody = document.getElementById('leads-tbody');
-  if (!leads.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay pacientes registrados aún.</td></tr>'; return; }
+  if (!leads.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No hay pacientes registrados aún.</td></tr>'; return; }
   tbody.innerHTML = leads.map(l => `<tr>
     <td class="td-name" onclick="openLead(${l.id})">${l.name}</td>
-    <td>${l.email}</td>
+    <td class="td-muted">${l.email}</td>
     <td>${l.country || '—'}</td>
-    <td><span class="pill ${pillMap[l.funnel_stage] || 'pill-blue'}">${stageLabels[l.funnel_stage] || l.funnel_stage}</span></td>
+    <td>${renderOriginPill(l.latest_source, l.submissions_count)}</td>
+    <td><span class="pill ${pillMap[l.funnel_stage] || 'pill-info'}">${stageLabels[l.funnel_stage] || l.funnel_stage}</span></td>
     <td>${l.tests_count}</td>
-    <td style="color:var(--ink3)">${l.created_at ? new Date(l.created_at).toLocaleDateString('es-CO') : '—'}</td>
+    <td class="td-muted">${l.created_at ? new Date(l.created_at).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
 }
 
@@ -1325,26 +1452,38 @@ async function openLead(id) {
     ? emails.map(e => `<tr><td>Paso ${e.sequence_number ?? e.step ?? '—'}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status] || 'pill-neutral'}">${e.status}</span></td><td class="td-muted">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`).join('')
     : '<tr><td colspan="4" class="td-muted" style="text-align:center;padding:2rem">Sin emails programados</td></tr>';
 
+  // Construye el header con enlaces clickeables (email mailto, whatsapp wa.me)
+  const wa = L.whatsapp || L.phone;
+  const waDigits = wa ? wa.replace(/\D/g, '') : null;
+  const waLink = waDigits ? `<a href="https://wa.me/${waDigits}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>${wa}</a>` : '';
+  const emailLink = L.email ? `<a href="mailto:${L.email}" style="color:var(--text);text-decoration:none">${L.email}</a>` : '';
+  const metaParts = [emailLink, waLink, L.country, L.trading_experience].filter(Boolean);
+
   el.innerHTML = `
     <div class="detail-header">
       <div>
         <button class="detail-back" onclick="showView('leads')">← Volver a pacientes</button>
         <div class="detail-name" style="margin-top:.75rem">${L.name || '(sin nombre)'}</div>
-        <div class="detail-meta">${L.email || ''}${L.country ? ' · ' + L.country : ''}${L.trading_experience ? ' · ' + L.trading_experience : ''}</div>
+        <div class="detail-meta">${metaParts.join(' · ')}</div>
       </div>
       ${L.funnel_stage ? `<span class="pill pill-accent" style="font-size:.8rem">${L.funnel_stage}</span>` : (L.status ? `<span class="pill pill-info" style="font-size:.8rem">${L.status}</span>` : '')}
     </div>
 
     <div class="detail-tabs">
-      <button class="tab-btn active" onclick="switchTab('timeline',this)">Línea de tiempo</button>
+      <button class="tab-btn active" onclick="switchTab('history',this)">Historial de interacciones</button>
+      <button class="tab-btn" onclick="switchTab('timeline',this)">Línea clínica</button>
       <button class="tab-btn" onclick="switchTab('emails-tab',this)">Emails (${emails.length})</button>
       <button class="tab-btn" onclick="switchTab('note-form',this)">+ Nota clínica</button>
     </div>
 
-    <div class="tab-panel active" id="tab-timeline">
+    <div class="tab-panel active" id="tab-history">
+      <div id="history-list"><div class="loading">Cargando historial...</div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-timeline">
       ${timelineItems.length ? '<div class="timeline">' + timelineItems.map(t =>
         `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${t.date ? new Date(t.date).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '—'}</div><div class="tl-card">${t.html}</div></div>`
-      ).join('') + '</div>' : '<div style="color:var(--ink3);padding:2rem;text-align:center">Sin historial aún</div>'}
+      ).join('') + '</div>' : '<div style="color:var(--text-muted);padding:2rem;text-align:center">Sin tests ni notas clínicas aún</div>'}
     </div>
 
     <div class="tab-panel" id="tab-emails-tab">
@@ -1373,7 +1512,93 @@ async function openLead(id) {
       </div>
     </div>
   `;
+
+  // Cargar el historial en background y rellenar el tab "Historial de interacciones"
+  loadLeadHistory(L.id);
 }
+
+// Carga las submissions del lead y renderiza la lista cronologica
+async function loadLeadHistory(leadId) {
+  const el = document.getElementById('history-list');
+  if (!el) return;
+  const data = await api('/api/leads/' + leadId + '/submissions');
+  if (!data || !data.submissions) {
+    el.innerHTML = '<div style="color:var(--text-muted);padding:2rem;text-align:center">No se pudo cargar el historial</div>';
+    return;
+  }
+  if (!data.submissions.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-title">Sin interacciones registradas</div><div class="empty-msg">Cuando este paciente complete un formulario, test o compra aparecerá aquí.</div></div>';
+    return;
+  }
+  // Almacenar para que el modal "Ver respuestas" pueda buscar por id
+  window._currentHistory = data.submissions;
+  el.innerHTML = data.submissions.map(s => renderHistoryCard(s)).join('');
+}
+
+function renderHistoryCard(s) {
+  const meta = ORIGIN_META[s.source] || { cls: 'origin-newsletter', label: s.source, icon: '' };
+  const cardClass = meta.cls.replace('origin-', 'is-');
+  const fecha = s.created_at ? new Date(s.created_at).toLocaleString('es-CO', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+
+  let body = '';
+  // Datos comunes de contacto/agendar
+  if (s.source === 'formulario_contacto' || s.source === 'formulario_agendar_sesion') {
+    if (s.experiencia_trading) body += `<div class="row"><span class="label">Experiencia</span>${s.experiencia_trading}</div>`;
+    if (s.principal_desafio)   body += `<div class="row"><span class="label">Desafío</span>${s.principal_desafio}</div>`;
+    if (s.whatsapp)            body += `<div class="row"><span class="label">WhatsApp</span>${s.whatsapp}</div>`;
+    if (s.intent)              body += `<div class="row"><span class="label">Intención</span>${s.intent === 'agendar' ? 'Agendar sesión' : 'Información'}</div>`;
+  }
+  // Test A o B
+  if (s.source === 'test_a_perfil_psicologico') {
+    if (s.test_a_score != null) body += `<div class="row"><span class="label">Puntaje</span>${s.test_a_score}</div>`;
+    if (s.test_a_perfil)        body += `<div class="row"><span class="label">Perfil</span>${s.test_a_perfil}</div>`;
+    if (s.test_respuestas)      body += `<button class="btn-secondary btn-sm" onclick="openTestAnswersModal(${s.id})">Ver respuestas completas</button>`;
+  }
+  if (s.source === 'test_b_plan_trading') {
+    if (s.test_b_score != null) body += `<div class="row"><span class="label">Puntaje</span>${s.test_b_score}</div>`;
+    if (s.test_b_perfil)        body += `<div class="row"><span class="label">Perfil</span>${s.test_b_perfil}</div>`;
+    if (s.test_respuestas)      body += `<button class="btn-secondary btn-sm" onclick="openTestAnswersModal(${s.id})">Ver respuestas completas</button>`;
+  }
+  // Compras (futuro)
+  if (s.source && s.source.startsWith('compra_plan_')) {
+    if (s.plan_comprado)   body += `<div class="row"><span class="label">Plan</span>${s.plan_comprado}</div>`;
+    if (s.monto_pagado != null) body += `<div class="row"><span class="label">Monto</span>${s.monto_pagado} ${s.moneda || 'USD'}</div>`;
+    if (s.pasarela)        body += `<div class="row"><span class="label">Pasarela</span>${s.pasarela}</div>`;
+    if (s.transaccion_id)  body += `<div class="row"><span class="label">Transacción</span>${s.transaccion_id}</div>`;
+  }
+  if (!body) body = '<div class="row" style="color:var(--text-muted)">Sin datos adicionales</div>';
+
+  return `<div class="history-card ${cardClass}">
+    <div class="history-card-head">
+      <span class="origin-pill ${meta.cls}">${meta.icon}${meta.label}</span>
+      <span class="history-card-date">${fecha}</span>
+    </div>
+    <div class="history-card-body">${body}</div>
+  </div>`;
+}
+
+function openTestAnswersModal(submissionId) {
+  const s = (window._currentHistory || []).find(x => x.id === submissionId);
+  if (!s || !s.test_respuestas) { alert('No hay respuestas guardadas para esta submission.'); return; }
+  const modal = document.getElementById('test-answers-modal');
+  if (!modal) return;
+  const meta = ORIGIN_META[s.source] || { label: s.source };
+  document.getElementById('tam-title').textContent = meta.label + ' — Respuestas completas';
+  const body = document.getElementById('tam-body');
+  const r = s.test_respuestas;
+  let html = '';
+  if (typeof r === 'object' && r !== null) {
+    const entries = Array.isArray(r) ? r.map((v, i) => [i + 1, v]) : Object.entries(r);
+    html = '<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.86rem">' +
+      entries.map(([k, v]) => `<div style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace">${k}</div><div style="color:var(--text);word-break:break-word">${typeof v === 'object' ? JSON.stringify(v) : String(v)}</div>`).join('') +
+      '</div>';
+  } else {
+    html = '<pre style="white-space:pre-wrap;color:var(--text);font-size:.82rem">' + JSON.stringify(r, null, 2) + '</pre>';
+  }
+  body.innerHTML = html;
+  modal.style.display = 'flex';
+}
+function closeTestAnswersModal() { document.getElementById('test-answers-modal').style.display = 'none'; }
 
 function switchTab(tabId, btn) {
   document.querySelectorAll('#view-detail .tab-panel').forEach(p => p.classList.remove('active'));
