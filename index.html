@@ -1149,7 +1149,49 @@ function calcRes(){
   const tot=Object.values(ds).reduce((a,b)=>a+b,0),maxT=t.questions.length*7,pct=Math.round(tot/maxT*100);
   const profs=t.id==='A'?pA:pB,maxSc=t.id==='A'?105:98,sc=Math.round(tot/maxT*maxSc);
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
-  showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
+  const r={tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})};
+  // Persistir al backend (fire-and-forget para no bloquear UX si la API tarda)
+  saveTestResult(r);
+  showRes(r);
+  sp('results');
+}
+
+async function saveTestResult(r){
+  if(!r.ud?.email || !r.ud?.name) return;  // sin email/nombre no podemos crear lead
+  const t=r.tid==='A'?tA:tB;
+  // Construir dimensions con name, code, score, max_score, percentage
+  const dimensions=Object.entries(t.dims).map(([code,d])=>{
+    const score=r.ds[code]||0;
+    const pct=d.m ? Math.round(score/d.m*100*10)/10 : 0;
+    return {name:d.n, code, score, max_score:d.m, percentage:pct};
+  });
+  // Construir respuestas: { "q0": valor, "q1": valor, ... }
+  const respuestas={};
+  Object.keys(ST.ans).forEach(k=>{respuestas['q'+k]=ST.ans[k];});
+  const endpoint = r.tid==='A' ? '/api/forms/test-a' : '/api/forms/test-b';
+  try{
+    await fetch('https://psicoatrading.online'+endpoint, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: r.ud.name, email: r.ud.email,
+        pais: r.ud.country || undefined,
+        experiencia_trading: r.ud.exp || undefined,
+        main_market: r.ud.mkt || undefined,
+        test_type: r.tid,
+        score: r.sc,
+        perfil: r.prof.name,
+        profile_code: r.prof.code || r.prof.risk || '',
+        respuestas,
+        dimensions,
+        max_score: r.maxSc,
+        percentile: r.pct
+      })
+    });
+  }catch(err){
+    // Silencioso: el usuario igual ve su resultado calculado
+    console.warn('saveTestResult error', err);
+  }
 }
 function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;

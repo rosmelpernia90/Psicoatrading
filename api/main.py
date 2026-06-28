@@ -1280,6 +1280,85 @@ def list_form_sources(payload: dict = Depends(require_psychologist_or_admin), db
     return {"sources": [{"value": s, "count": n} for s, n in rows]}
 
 
+@app.get("/api/test-results-list")
+def list_test_results(
+    test_type: Optional[str] = None,        # 'A' | 'B'
+    profile: Optional[str] = None,          # profile_name exacto
+    country: Optional[str] = None,
+    date_from: Optional[str] = None,        # ISO YYYY-MM-DD
+    date_to: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500),
+    payload: dict = Depends(require_psychologist_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Lista completa de tests realizados con info del lead. Sirve a la seccion
+    'Resultados de Tests' del panel admin + KPIs."""
+    query = db.query(TestResult, Lead).join(Lead, Lead.id == TestResult.lead_id)
+    if test_type:
+        query = query.filter(TestResult.test_type == test_type.upper())
+    if profile:
+        query = query.filter(TestResult.profile_name == profile)
+    if country:
+        query = query.filter(Lead.country == country)
+    if date_from:
+        try: query = query.filter(TestResult.completed_at >= datetime.fromisoformat(date_from))
+        except Exception: pass
+    if date_to:
+        try: query = query.filter(TestResult.completed_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+        except Exception: pass
+
+    total = query.count()
+    rows = query.order_by(TestResult.completed_at.desc()).limit(limit).all()
+
+    # KPIs: globales (no filtrados por los params) para tener referencia estable
+    g_total  = db.query(func.count(TestResult.id)).scalar() or 0
+    g_test_a = db.query(func.count(TestResult.id)).filter(TestResult.test_type == "A").scalar() or 0
+    g_test_b = db.query(func.count(TestResult.id)).filter(TestResult.test_type == "B").scalar() or 0
+    # Top 3 perfiles mas comunes
+    top_profiles_rows = db.query(TestResult.profile_name, func.count(TestResult.id).label("n"))\
+                          .group_by(TestResult.profile_name)\
+                          .order_by(func.count(TestResult.id).desc())\
+                          .limit(3).all()
+    top_profiles = [{"profile": p or "(sin perfil)", "count": n} for p, n in top_profiles_rows]
+    # Perfiles disponibles para el dropdown
+    profiles_all = [p for (p,) in db.query(TestResult.profile_name).distinct().all() if p]
+    countries_all = [c for (c,) in db.query(Lead.country).distinct().all() if c]
+
+    return {
+        "total": total,
+        "kpis": {
+            "total_tests": g_total,
+            "tests_a": g_test_a,
+            "tests_b": g_test_b,
+            "top_profiles": top_profiles,
+        },
+        "filters": {
+            "profiles": sorted(profiles_all),
+            "countries": sorted(countries_all),
+        },
+        "results": [
+            {
+                "id": t.id,
+                "lead_id": t.lead_id,
+                "lead_name": l.name,
+                "lead_email": l.email,
+                "lead_country": l.country,
+                "test_type": t.test_type,
+                "profile_name": t.profile_name,
+                "profile_code": t.profile_code,
+                "total_score": float(t.total_score) if t.total_score else 0,
+                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                "dimensions": [
+                    {"name": d.dimension_name, "code": d.dimension_code,
+                     "score": float(d.score), "max_score": float(d.max_score),
+                     "percentage": float(d.percentage)}
+                    for d in t.dimensions
+                ],
+            } for t, l in rows
+        ],
+    }
+
+
 @app.get("/api/leads/{lead_id}")
 def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = Depends(get_db)):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()

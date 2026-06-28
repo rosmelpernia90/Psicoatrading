@@ -485,6 +485,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
     <nav class="sb-nav" aria-label="Navegación principal">
       <button class="sb-item active" id="nav-dashboard" data-view="dashboard" onclick="showView('dashboard')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span><span>Dashboard</span></button>
       <button class="sb-item" id="nav-leads" data-view="leads" onclick="showView('leads')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Pacientes</span></button>
+      <button class="sb-item" id="nav-tests" data-view="tests" onclick="showView('tests')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span>Resultados de Tests</span></button>
       <button class="sb-item" id="nav-emails" data-view="emails" onclick="showView('emails')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><span>Emails</span></button>
       <button class="sb-item" id="nav-sessions" data-view="sessions" onclick="showView('sessions')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg></span><span>Sesiones</span></button>
       <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span>Progreso del cliente</span></button>
@@ -581,6 +582,35 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
     <!-- LEAD DETAIL -->
     <div class="view-panel" id="view-detail">
       <div id="detail-content"></div>
+    </div>
+
+    <!-- RESULTADOS DE TESTS -->
+    <div class="view-panel" id="view-tests">
+      <h1 style="margin-bottom:.4rem">Resultados de Tests</h1>
+      <p style="color:var(--text-muted);font-size:.92rem;margin-bottom:1.25rem">Todos los tests psicológicos completados desde la web pública.</p>
+      <div class="kpi-grid" id="tests-kpis"><div class="loading">Cargando KPIs...</div></div>
+      <div class="leads-filters">
+        <select class="form-input" id="tf-type" onchange="loadTests()">
+          <option value="">Tipo — A y B</option>
+          <option value="A">Solo Test A</option>
+          <option value="B">Solo Test B</option>
+        </select>
+        <select class="form-input" id="tf-profile" onchange="loadTests()">
+          <option value="">Perfil — todos</option>
+        </select>
+        <select class="form-input" id="tf-country" onchange="loadTests()">
+          <option value="">País — todos</option>
+        </select>
+        <button class="btn-secondary btn-sm" onclick="clearTestFilters()" style="white-space:nowrap">Limpiar</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Lead</th><th>Email</th><th>Tipo</th><th>Perfil</th><th>Puntuación</th><th>País</th><th></th></tr></thead>
+            <tbody id="tests-tbody"><tr><td colspan="8" class="loading">Cargando tests...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- EMAILS -->
@@ -1179,7 +1209,7 @@ function enterApp() {
 let viewAsRole = null;  // null = admin real; 'psychologist'/'cliente' = preview
 
 // Items que SOLO ve el admin (no el psicólogo)
-const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-emails', 'nav-users', 'nav-psicologos', 'nav-asignaciones', 'nav-solicitudes'];
+const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-tests', 'nav-emails', 'nav-users', 'nav-psicologos', 'nav-asignaciones', 'nav-solicitudes'];
 
 function applyClinicalRole(effectiveRole) {
   // effectiveRole: 'admin' o 'psychologist'
@@ -1247,6 +1277,7 @@ function showView(name) {
   if (btn) btn.classList.add('active');
   if (name === 'dashboard') loadDashboard();
   if (name === 'leads') loadLeads();
+  if (name === 'tests') loadTests();
   if (name === 'emails') loadEmails();
   if (name === 'users') loadUsers();
   if (name === 'progress') loadCourseProgress();
@@ -1365,6 +1396,87 @@ function filterLeads() {
   renderLeads(filtered);
 }
 
+// ============================================================
+// TESTS RESULTS (Bug 3 — seccion nueva en sidebar)
+// ============================================================
+let _testFiltersLoaded = false;
+async function loadTests() {
+  const params = new URLSearchParams();
+  const t = document.getElementById('tf-type')?.value;
+  const p = document.getElementById('tf-profile')?.value;
+  const c = document.getElementById('tf-country')?.value;
+  if (t) params.set('test_type', t);
+  if (p) params.set('profile', p);
+  if (c) params.set('country', c);
+  const data = await api('/api/test-results-list?' + params.toString());
+  if (!data) return;
+  // KPIs
+  const k = data.kpis || {};
+  const top = (k.top_profiles || []).map(p => `${p.profile} (${p.count})`).join(' · ') || '—';
+  document.getElementById('tests-kpis').innerHTML = `
+    <div class="kpi featured"><div class="kpi-label">Tests realizados</div><div class="kpi-value">${k.total_tests || 0}</div><div class="kpi-sub">total histórico</div></div>
+    <div class="kpi"><div class="kpi-label">Test A — Perfil Psicológico</div><div class="kpi-value gold">${k.tests_a || 0}</div><div class="kpi-sub">completados</div></div>
+    <div class="kpi"><div class="kpi-label">Test B — Plan de Trading</div><div class="kpi-value good">${k.tests_b || 0}</div><div class="kpi-sub">completados</div></div>
+    <div class="kpi accent"><div class="kpi-label">Perfiles más frecuentes</div><div class="kpi-value" style="font-size:1rem;line-height:1.35">${top}</div></div>
+  `;
+  // Filtros dinámicos (solo primera carga)
+  if (!_testFiltersLoaded && data.filters) {
+    _testFiltersLoaded = true;
+    const pSel = document.getElementById('tf-profile');
+    pSel.innerHTML = '<option value="">Perfil — todos</option>' +
+      (data.filters.profiles || []).map(p => `<option value="${p}">${p}</option>`).join('');
+    const cSel = document.getElementById('tf-country');
+    cSel.innerHTML = '<option value="">País — todos</option>' +
+      (data.filters.countries || []).map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+  // Tabla
+  window._testsData = data.results || [];
+  const tbody = document.getElementById('tests-tbody');
+  if (!data.results?.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">Sin tests para los filtros seleccionados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.results.map(t => `<tr>
+    <td class="td-muted">${t.completed_at ? new Date(t.completed_at).toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'}) : '—'}</td>
+    <td class="td-name" onclick="openLead(${t.lead_id})">${t.lead_name}</td>
+    <td class="td-muted">${t.lead_email}</td>
+    <td><span class="pill ${t.test_type === 'A' ? 'pill-success' : 'pill-accent'}">Test ${t.test_type}</span></td>
+    <td>${t.profile_name || '—'}</td>
+    <td><span class="mono">${t.total_score}</span></td>
+    <td>${t.lead_country || '—'}</td>
+    <td><button class="tbl-action" onclick="openTestDetail(${t.id})">Ver detalle</button></td>
+  </tr>`).join('');
+}
+
+function clearTestFilters() {
+  document.getElementById('tf-type').value = '';
+  document.getElementById('tf-profile').value = '';
+  document.getElementById('tf-country').value = '';
+  loadTests();
+}
+
+function openTestDetail(id) {
+  const t = (window._testsData || []).find(x => x.id === id);
+  if (!t) return;
+  const modal = document.getElementById('test-answers-modal');
+  document.getElementById('tam-title').textContent = `Test ${t.test_type} — ${t.profile_name || ''}`;
+  const dimsHtml = (t.dimensions || []).map(d => {
+    const cls = d.percentage >= 70 ? 'fill-green' : d.percentage >= 45 ? 'fill-blue' : d.percentage >= 25 ? 'fill-amber' : 'fill-red';
+    return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${d.max_score} (${d.percentage}%)</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${d.percentage}%"></div></div></div>`;
+  }).join('');
+  document.getElementById('tam-body').innerHTML = `
+    <div style="margin-bottom:1rem;padding:12px;background:var(--bg-surface-2);border-radius:8px">
+      <div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Lead</div>
+      <div style="font-size:.95rem;color:var(--text);font-weight:600;margin-top:2px">${t.lead_name} · <span style="font-weight:400;color:var(--text-muted)">${t.lead_email}</span></div>
+      <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px">${t.lead_country || ''}${t.completed_at ? ' · ' + new Date(t.completed_at).toLocaleString('es-CO') : ''}</div>
+    </div>
+    <div style="margin-bottom:1rem"><span class="label-eyebrow">Perfil resultante</span><div style="font-family:'Fraunces',serif;font-size:1.15rem;color:var(--text);margin-top:4px">${t.profile_name}</div></div>
+    <div style="margin-bottom:1rem"><span class="label-eyebrow">Puntuación total</span><div style="font-size:1.5rem;color:var(--accent);font-weight:600">${t.total_score}</div></div>
+    <div><span class="label-eyebrow">Dimensiones</span><div style="margin-top:10px">${dimsHtml || '<span class="td-muted">Sin dimensiones registradas</span>'}</div></div>
+  `;
+  modal.style.display = 'flex';
+}
+
 function renderLeads(leads) {
   const pillMap = { new: 'pill-info', test_completed: 'pill-accent', email_sequence: 'pill-warning', session_booked: 'pill-success', client: 'pill-success', inactive: 'pill-danger', nuevo: 'pill-info' };
   const stageLabels = { new: 'Nuevo', nuevo: 'Nuevo', test_completed: 'Test', email_sequence: 'Emails', session_booked: 'Sesión', client: 'Cliente', inactive: 'Inactivo' };
@@ -1376,7 +1488,7 @@ function renderLeads(leads) {
     <td>${l.country || '—'}</td>
     <td>${renderOriginPill(l.latest_source, l.submissions_count)}</td>
     <td><span class="pill ${pillMap[l.funnel_stage] || 'pill-info'}">${stageLabels[l.funnel_stage] || l.funnel_stage}</span></td>
-    <td>${l.tests_count}</td>
+    <td>${l.tests_count > 0 ? '<strong style="color:var(--accent)">' + l.tests_count + '</strong>' : '<span class="td-muted">—</span>'}</td>
     <td class="td-muted">${l.created_at ? new Date(l.created_at).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
 }
