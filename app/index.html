@@ -1583,6 +1583,7 @@ async function openLead(id) {
 
     <div class="detail-tabs">
       <button class="tab-btn active" onclick="switchTab('history',this)">Historial de interacciones</button>
+      <button class="tab-btn" onclick="switchTab('tests',this)">Tests (${tests.length})</button>
       <button class="tab-btn" onclick="switchTab('timeline',this)">Línea clínica</button>
       <button class="tab-btn" onclick="switchTab('emails-tab',this)">Emails (${emails.length})</button>
       <button class="tab-btn" onclick="switchTab('note-form',this)">+ Nota clínica</button>
@@ -1590,6 +1591,34 @@ async function openLead(id) {
 
     <div class="tab-panel active" id="tab-history">
       <div id="history-list"><div class="loading">Cargando historial...</div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-tests">
+      ${tests.length ? tests.map(t => {
+        const score = t.total_score ?? t.scaled_score ?? 0;
+        const max = t.max_score ?? 100;
+        const pct = max ? Math.round((score / max) * 100) : 0;
+        const dimsHtml = (t.dimensions || []).map(d => {
+          const dpct = d.percentage ?? (d.max_score ? Math.round(d.score / d.max_score * 100) : 0);
+          const cls = dpct >= 70 ? 'fill-green' : dpct >= 45 ? 'fill-blue' : dpct >= 25 ? 'fill-amber' : 'fill-red';
+          return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${d.max_score ?? d.max} (${dpct}%)</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${dpct}%"></div></div></div>`;
+        }).join('');
+        return `<div class="card" style="margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+            <div>
+              <span class="pill ${t.test_type === 'A' ? 'pill-success' : 'pill-accent'}" style="margin-bottom:8px;display:inline-flex">Test ${t.test_type} — ${t.test_type === 'A' ? 'Perfil Psicológico' : 'Plan de Trading'}</span>
+              <div style="font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 96;font-size:1.2rem;color:var(--text);margin-top:6px">${t.profile_name || '(sin perfil)'}</div>
+              <div class="td-muted" style="font-size:.82rem;margin-top:2px">${t.completed_at ? new Date(t.completed_at).toLocaleString('es-CO', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—'}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="label-eyebrow">Puntuación</div>
+              <div style="font-size:1.8rem;font-weight:600;color:var(--accent);line-height:1">${score}<span style="font-size:.85rem;color:var(--text-muted)">/${max}</span></div>
+              <div class="td-muted" style="font-size:.78rem">${pct}% del máximo</div>
+            </div>
+          </div>
+          ${dimsHtml ? `<div style="margin-top:10px"><span class="label-eyebrow">Dimensiones</span><div style="margin-top:10px">${dimsHtml}</div></div>` : ''}
+        </div>`;
+      }).join('') : '<div class="empty-state"><div class="empty-title">Sin tests realizados</div><div class="empty-msg">Cuando este paciente complete el Test A o B aparecerán aquí.</div></div>'}
     </div>
 
     <div class="tab-panel" id="tab-timeline">
