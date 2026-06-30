@@ -818,7 +818,7 @@ def submit_contact(data: ContactSubmit, db: Session = Depends(get_db)):
         whatsapp=wa, pais=data.country,
         experiencia_trading=data.trading_experience,
         principal_desafio=notes_text,
-        intent=None,
+        intent="contacto",
     )
     return form_contact(payload, db)
 
