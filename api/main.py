@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, Boolean, DateTime, Date,
-    JSON, Enum as SAEnum, ForeignKey, func, DECIMAL, or_
+    JSON, Enum as SAEnum, ForeignKey, func, DECIMAL, or_, Index as SAIndex
 )
 from sqlalchemy.orm import sessionmaker, Session, declarative_base, relationship
 from jose import JWTError, jwt
@@ -25,6 +25,19 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Email service (SMTP Hostinger)
+from email_service import email_service
+from email_templates import (
+    template_contacto_autorespuesta,
+    template_contacto_notificacion_admin,
+    template_test_email_1_bienvenida,
+    template_test_email_2_desafio,
+    template_test_email_3_social_proof,
+    template_test_email_4_recurso,
+    template_test_email_5_ultima_invitacion,
+    template_test_notificacion_admin
+)
 
 # ============================================
 # CONFIG
@@ -333,6 +346,27 @@ class LeadSubmission(Base):
     created_at          = Column(DateTime, default=datetime.utcnow)
 
 
+class EmailQueue(Base):
+    """Cola de emails programados (SMTP Hostinger)."""
+    __tablename__ = "email_queue"
+    id              = Column(Integer, primary_key=True)
+    lead_id         = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False)
+    to_email        = Column(String(255), nullable=False)
+    to_name         = Column(String(255), nullable=True)
+    subject         = Column(String(500), nullable=False)
+    template_key    = Column(String(100), nullable=False)  # test_email_2, test_email_3, etc.
+    status          = Column(SAEnum("pending", "sent", "failed", name="email_status"), default="pending")
+    scheduled_at    = Column(DateTime, nullable=False)
+    sent_at         = Column(DateTime, nullable=True)
+    attempts        = Column(Integer, default=0)
+    error_message   = Column(Text, nullable=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        SAIndex("idx_status_scheduled", "status", "scheduled_at"),
+        SAIndex("idx_lead_id", "lead_id"),
+    )
+
+
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
@@ -634,41 +668,70 @@ def send_diary_reminders():
 
 
 def send_pending_emails():
-    """Called by APScheduler every 5 minutes"""
-    if not SENDGRID_API_KEY:
-        return
+    """Procesa cola de emails cada 5 minutos — genera templates dinámicamente y envía vía SMTP."""
     try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail
         db = SessionLocal()
         pending = db.query(EmailQueue).filter(
             EmailQueue.status == "pending",
-            EmailQueue.scheduled_at <= datetime.utcnow()
+            EmailQueue.scheduled_at <= datetime.utcnow(),
+            EmailQueue.attempts < 3
         ).limit(10).all()
-        sg = SendGridAPIClient(SENDGRID_API_KEY)
+
         for email_item in pending:
             lead = db.query(Lead).filter(Lead.id == email_item.lead_id).first()
             if not lead:
                 email_item.status = "failed"
                 email_item.error_message = "Lead not found"
+                db.add(email_item)
                 continue
-            message = Mail(
-                from_email=(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
-                to_emails=lead.email,
-                subject=email_item.subject,
-                html_content=email_item.body_html
-            )
-            try:
-                sg.send(message)
-                email_item.status = "sent"
-                email_item.sent_at = datetime.utcnow()
-            except Exception as e:
+
+            # Generar el email dinámicamente según el template_key
+            template_data = None
+            test_result = db.query(TestResult).filter(TestResult.lead_id == lead.id).order_by(TestResult.id.desc()).first()
+
+            if email_item.template_key == "test_email_2":
+                desafio = test_result.desafio_principal if test_result else "default"
+                template_data = template_test_email_2_desafio(
+                    nombre=lead.name,
+                    perfil=test_result.profile_name if test_result else "",
+                    desafio_principal=desafio or "default"
+                )
+            elif email_item.template_key == "test_email_3":
+                template_data = template_test_email_3_social_proof(nombre=lead.name)
+            elif email_item.template_key == "test_email_4":
+                template_data = template_test_email_4_recurso(nombre=lead.name)
+            elif email_item.template_key == "test_email_5":
+                template_data = template_test_email_5_ultima_invitacion(
+                    nombre=lead.name,
+                    perfil=test_result.profile_name if test_result else ""
+                )
+
+            if template_data:
+                success = email_service.send_email(
+                    to_email=lead.email,
+                    subject=template_data["subject"],
+                    html_body=template_data["html"]
+                )
+                if success:
+                    email_item.status = "sent"
+                    email_item.sent_at = datetime.utcnow()
+                    email_item.subject = template_data["subject"]
+                else:
+                    email_item.attempts += 1
+                    if email_item.attempts >= 3:
+                        email_item.status = "failed"
+                        email_item.error_message = "Max attempts reached"
+                    email_item.error_message = "Send failed"
+            else:
                 email_item.status = "failed"
-                email_item.error_message = str(e)
+                email_item.error_message = "Unknown template key"
+
+            db.add(email_item)
+
         db.commit()
         db.close()
     except Exception as e:
-        print(f"Email scheduler error: {e}")
+        logger.error(f"Email scheduler error: {str(e)}")
 
 
 # ============================================
@@ -751,13 +814,28 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         print(f"[LEAD] Test completado por lead existente: {data.email}")
 
     # Save test result
+    # Calcular desafio principal (dimensión con puntaje más bajo)
+    desafio_principal = None
+    if data.dimensions:
+        min_dim = min(data.dimensions, key=lambda d: float(d.get("score", 0)))
+        desafio_principal = min_dim.get("code", "")
+
+    # Convertir dimensiones a dict {nombre: puntaje}
+    dimensiones_dict = {}
+    if data.dimensions:
+        for d in data.dimensions:
+            dimensiones_dict[d.get("name", d.get("code", ""))] = float(d.get("score", 0))
+
     test_result = TestResult(
         lead_id=lead.id,
         test_type=data.test_type,
         profile_name=data.profile_name,
         profile_code=data.profile_code,
         total_score=data.total_score,
-        answers_json=data.answers
+        answers_json=data.answers,
+        perfil=data.profile_name,
+        dimensiones=dimensiones_dict,
+        desafio_principal=desafio_principal
     )
     db.add(test_result)
     db.flush()
@@ -797,8 +875,53 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
 
     db.commit()
 
-    # Schedule email sequence
-    schedule_email_sequence(db, lead.id, lead.name, data.profile_name)
+    # Enviar Email 1 inmediato (Bienvenida + Perfil)
+    email_1 = template_test_email_1_bienvenida(
+        nombre=lead.name,
+        test_tipo=data.test_type,
+        perfil=data.profile_name,
+        dimensiones=dimensiones_dict
+    )
+    email_service.send_email(
+        to_email=lead.email,
+        subject=email_1["subject"],
+        html_body=email_1["html"]
+    )
+
+    # Notificación al admin
+    notif = template_test_notificacion_admin(
+        nombre=lead.name,
+        email=lead.email,
+        pais=lead.country or "",
+        test_tipo=data.test_type,
+        perfil=data.profile_name
+    )
+    email_service.send_email(
+        to_email="admin@psicoatrading.online",
+        subject=notif["subject"],
+        html_body=notif["html"]
+    )
+
+    # Programar los 4 emails siguientes (días 2, 5, 7, 10)
+    now = datetime.utcnow()
+    scheduled_emails = [
+        {"template_key": "test_email_2", "scheduled_at": now + timedelta(days=2)},
+        {"template_key": "test_email_3", "scheduled_at": now + timedelta(days=5)},
+        {"template_key": "test_email_4", "scheduled_at": now + timedelta(days=7)},
+        {"template_key": "test_email_5", "scheduled_at": now + timedelta(days=10)},
+    ]
+    for email_item in scheduled_emails:
+        eq = EmailQueue(
+            lead_id=lead.id,
+            to_email=lead.email,
+            to_name=lead.name,
+            subject="",  # Se genera al momento de enviar
+            template_key=email_item["template_key"],
+            status="pending",
+            scheduled_at=email_item["scheduled_at"]
+        )
+        db.add(eq)
+    db.commit()
 
     return {
         "success": True,
@@ -879,6 +1002,31 @@ def form_contact(data: FormContactSubmit, db: Session = Depends(get_db)):
     )
     db.add(sub)
     db.commit()
+
+    # Enviar emails
+    # 1. Auto-respuesta al usuario
+    autorespuesta = template_contacto_autorespuesta(data.name)
+    email_service.send_email(
+        to_email=data.email,
+        subject=autorespuesta["subject"],
+        html_body=autorespuesta["html"]
+    )
+
+    # 2. Notificación al admin
+    notif = template_contacto_notificacion_admin(
+        nombre=data.name,
+        email=data.email,
+        pais=data.pais or "",
+        experiencia=data.experiencia_trading or "",
+        whatsapp=data.whatsapp or "",
+        mensaje=data.principal_desafio or ""
+    )
+    email_service.send_email(
+        to_email="admin@psicoatrading.online",
+        subject=notif["subject"],
+        html_body=notif["html"]
+    )
+
     return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
             "message": "Recibimos tu solicitud. Te contactaremos pronto."}
 
