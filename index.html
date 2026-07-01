@@ -289,6 +289,16 @@ svg.ic{display:block}
 .q-text{font-family:'Playfair Display',serif;font-size:1.45rem;font-weight:500;color:var(--ink);line-height:1.4;margin-bottom:1.8rem}
 .lk-labels{display:flex;justify-content:space-between;font-size:.74rem;color:var(--ink3);margin-bottom:9px;font-weight:500}
 .lk-row{display:flex;gap:8px}
+.q-nota{width:100%;margin-top:16px;padding:12px 15px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);font-family:inherit;font-size:.94rem;color:var(--ink2);outline:none;resize:vertical;min-height:52px;max-height:130px;transition:border-color .2s,box-shadow .2s}
+.q-nota:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(22,168,146,.13);background:#fff}
+.q-nota::placeholder{color:var(--ink3)}
+.cont-success{text-align:center;padding:48px 28px;animation:fadeInUp .5s var(--ease)}
+.cont-success .cs-ic{width:74px;height:74px;background:var(--gold-soft);border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;color:var(--gold)}
+.cont-success h3{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--ink);margin-bottom:10px}
+.cont-success p{color:var(--ink2);font-size:1rem;line-height:1.6;font-weight:300;margin-bottom:6px}
+.cont-success .cs-redir{color:var(--ink3);font-size:.86rem;margin-top:16px}
+.cont-error{background:var(--red-soft);border:1px solid var(--red-line);color:#991B1B;padding:12px 16px;border-radius:var(--r-xs);margin-top:16px;text-align:center;font-size:.9rem}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 .lkb{flex:1;height:52px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:all .15s var(--ease);color:var(--ink2)}
 .lkb:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-soft);transform:translateY(-2px)}
 .lkb.sel{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 6px 16px rgba(22,168,146,.3)}
@@ -743,7 +753,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <div class="fg"><label class="fl">País</label><select class="fi country-select" id="contact-pais"><option value="">Selecciona tu país</option></select></div>
         <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi" id="contact-experiencia"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
         <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
-        <button class="fsub" onclick="alert('Mensaje enviado. Te contactaremos en menos de 24 horas.')">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button class="fsub" onclick="submitContact(this)">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
   </div></section>
@@ -786,6 +796,17 @@ function populateCountrySelects(){
   document.querySelectorAll('select.country-select').forEach(sel=>{
     const cur=sel.value; sel.innerHTML=countryOptionsHTML(); if(cur){sel.value=cur;}
   });
+}
+function submitContact(btn){
+  const card=document.querySelector('.cont-form-card');
+  if(!card)return;
+  card.innerHTML='<div class="cont-success">'
+    +'<div class="cs-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>'
+    +'<h3>¡Solicitud enviada!</h3>'
+    +'<p>Recibimos tu mensaje. Un psicólogo especializado<br>te contactará en menos de <strong>24 horas</strong>.</p>'
+    +'<p class="cs-redir">Redirigiendo al inicio…</p>'
+    +'</div>';
+  setTimeout(()=>{sp('home');window.scrollTo({top:0,behavior:'smooth'});},4000);
 }
 function prefillContact(){
   populateCountrySelects();
@@ -927,8 +948,8 @@ const pB=[
   {name:'El Saboteador del Sistema',rng:[20,44],risk:'warning',tag:'Tienes un plan. Tu mente no lo respeta.',sum:'Patrón sistemático de sabotaje del propio sistema. Mueve stops, sale antes del objetivo, sobreopera.',str:['Conciencia del problema','Conocimiento técnico presente'],chl:['Ejecución bajo cualquier condición','Control de sesgos activos'],int:['Terapia cognitivo-conductual','Programa intensivo 6 semanas']},
   {name:'Sin Sistema Real',rng:[0,19],risk:'danger',tag:'Opera sin plan. El mercado lo sabe.',sum:'Operaciones sin sistema claro ni gestión de riesgo. Alta probabilidad de pérdidas estructurales.',str:['Punto de partida claro para construir desde cero'],chl:['Ausencia de sistema operativo','Gestión de riesgo inexistente'],int:['Construcción de plan desde fundamentos','Intervención psicológica urgente']}
 ];
-let ST={t:null,ans:{},qi:-1,ud:{}};
-function startTest(id){ST={t:id==='A'?tA:tB,ans:{},qi:-1,ud:{}};closeMob();sp('test');renderStep();}
+let ST={t:null,ans:{},qi:-1,ud:{},notes:{}};
+function startTest(id){ST={t:id==='A'?tA:tB,ans:{},qi:-1,ud:{},notes:{}};closeMob();sp('test');renderStep();}
 function renderStep(){
   const t=ST.t,tot=t.questions.length;
   document.getElementById('prog').style.width=ST.qi<0?'0%':((ST.qi+1)/tot*100)+'%';
@@ -948,45 +969,20 @@ function subUF(){
   ST.qi=0;renderStep();
 }
 function renderQ(i){
-  const t=ST.t,q=t.questions[i],s=ST.ans[i];
-  document.getElementById('tbody').innerHTML='<div class="q-card"><p class="q-text">'+q.text+'</p><div class="lk-labels"><span>Nunca · 1</span><span>7 · Siempre</span></div><div class="lk-row">'+[1,2,3,4,5,6,7].map(v=>'<button class="lkb'+(s===v?' sel':'')+'" onclick="selA('+i+','+v+')">'+v+'</button>').join('')+'</div></div><button class="btn-nxt" id="bnq" onclick="nxtQ()"'+(s===undefined?' disabled':'')+'>'+(i<t.questions.length-1?'Siguiente '+ICN.arrBtn:'Ver mi resultado '+ICN.arrBtn)+'</button>';
+  const t=ST.t,q=t.questions[i],s=ST.ans[i],note=ST.notes[i]||'';
+  document.getElementById('tbody').innerHTML='<div class="q-card"><p class="q-text">'+q.text+'</p><div class="lk-labels"><span>Nunca · 1</span><span>7 · Siempre</span></div><div class="lk-row">'+[1,2,3,4,5,6,7].map(v=>'<button class="lkb'+(s===v?' sel':'')+'" onclick="selA('+i+','+v+')">'+v+'</button>').join('')+'</div><div class="nota-container"><textarea id="nota-pregunta" class="q-nota" rows="2" maxlength="500" placeholder="Nota (opcional) — Agrega un comentario sobre tu respuesta si lo deseas">'+note+'</textarea></div></div><button class="btn-nxt" id="bnq" onclick="nxtQ()"'+(s===undefined?' disabled':'')+'>'+(i<t.questions.length-1?'Siguiente '+ICN.arrBtn:'Ver mi resultado '+ICN.arrBtn)+'</button>';
 }
 function selA(qi,v){ST.ans[qi]=v;document.querySelectorAll('.lkb').forEach((b,i)=>b.classList.toggle('sel',i+1===v));document.getElementById('bnq').disabled=false;}
-function nxtQ(){const t=ST.t;if(ST.qi<t.questions.length-1){ST.qi++;renderStep();window.scrollTo(0,0);}else{calcRes();}}
+function saveNote(){const el=document.getElementById('nota-pregunta');if(el){const v=el.value.trim();if(v)ST.notes[ST.qi]=v;else delete ST.notes[ST.qi];}}
+function nxtQ(){const t=ST.t;saveNote();if(ST.qi<t.questions.length-1){ST.qi++;renderStep();window.scrollTo(0,0);}else{calcRes();}}
 function calcRes(){
   const t=ST.t,ds={};Object.keys(t.dims).forEach(d=>ds[d]=0);
   t.questions.forEach((q,i)=>{let v=ST.ans[i]||4;if(q.rev)v=8-v;ds[q.dim]+=v;});
   const tot=Object.values(ds).reduce((a,b)=>a+b,0),maxT=t.questions.length*7,pct=Math.round(tot/maxT*100);
   const profs=t.id==='A'?pA:pB,maxSc=t.id==='A'?105:98,sc=Math.round(tot/maxT*maxSc);
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
-  const r={tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})};
-  saveTestResult(r);
-  showRes(r);sp('results');
-}
-async function saveTestResult(r){
-  if(!r.ud?.email || !r.ud?.name) return;
-  const t=r.tid==='A'?tA:tB;
-  const dimensions=Object.entries(t.dims).map(([code,d])=>{
-    const score=r.ds[code]||0;
-    const pct=d.m ? Math.round(score/d.m*100*10)/10 : 0;
-    return {name:d.n,code,score,max_score:d.m,percentage:pct};
-  });
-  const respuestas={};
-  Object.keys(ST.ans).forEach(k=>{respuestas['q'+k]=ST.ans[k];});
-  const endpoint=r.tid==='A'?'/api/forms/test-a':'/api/forms/test-b';
-  try{
-    await fetch('https://psicoatrading.online'+endpoint,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name:r.ud.name,email:r.ud.email,pais:r.ud.country||undefined,
-        experiencia_trading:r.ud.exp||undefined,main_market:r.ud.mkt||undefined,
-        test_type:r.tid,score:r.sc,perfil:r.prof.name,profile_code:r.prof.code||r.prof.risk||'',
-        respuestas,dimensions,max_score:r.maxSc,percentile:r.pct
-      })
-    });
-  }catch(err){
-    console.warn('saveTestResult error',err);
-  }
+  ST.notesPayload=t.questions.map((q,i)=>({pregunta:i+1,dim:q.dim,nota:ST.notes[i]||null})).filter(n=>n.nota!==null);
+  showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
 }
 function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;
