@@ -981,8 +981,27 @@ function calcRes(){
   const tot=Object.values(ds).reduce((a,b)=>a+b,0),maxT=t.questions.length*7,pct=Math.round(tot/maxT*100);
   const profs=t.id==='A'?pA:pB,maxSc=t.id==='A'?105:98,sc=Math.round(tot/maxT*maxSc);
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
-  ST.notesPayload=t.questions.map((q,i)=>({pregunta:i+1,dim:q.dim,nota:ST.notes[i]||null})).filter(n=>n.nota!==null);
-  showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
+  const res={tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})};
+  showRes(res);sp('results');
+  saveTestResult(res);
+}
+function saveTestResult(r){
+  const t=r.tid==='A'?tA:tB;
+  const dimensions=Object.keys(t.dims).map(k=>{
+    const d=t.dims[k],score=r.ds[k]||0,max=d.m,pct2=Math.round(score/max*100);
+    return {name:d.n,code:k,score:score,max_score:max,percentage:pct2};
+  });
+  const respuestas={};Object.keys(ST.ans).forEach(i=>respuestas[i]=ST.ans[i]);
+  const payload={
+    name:r.ud.name,email:r.ud.email,pais:r.ud.country,
+    experiencia_trading:r.ud.exp,main_market:r.ud.mkt,
+    test_type:r.tid,score:r.sc,perfil:r.prof.name,
+    respuestas:respuestas,dimensions:dimensions,notas:r.notas||[]
+  };
+  const endpoint=r.tid==='A'?'/api/forms/test-a':'/api/forms/test-b';
+  fetch('https://psicoatrading.online'+endpoint,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  }).catch(err=>console.error('No se pudo guardar el resultado del test:',err));
 }
 function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;

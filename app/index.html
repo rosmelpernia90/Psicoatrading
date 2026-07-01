@@ -1561,7 +1561,7 @@ async function openLead(id) {
   // Email status
   const statusPill = { pending: 'pill-warning', sent: 'pill-success', failed: 'pill-danger', cancelled: 'pill-info' };
   const emailRows = emails.length
-    ? emails.map(e => `<tr><td>Paso ${e.sequence_number ?? e.step ?? '—'}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status] || 'pill-neutral'}">${e.status}</span></td><td class="td-muted">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`).join('')
+    ? emails.map(e => `<tr><td>${e.template_key || '—'}</td><td>${e.subject || ''}</td><td><span class="pill ${statusPill[e.status] || 'pill-neutral'}">${e.status}</span></td><td class="td-muted">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td></tr>`).join('')
     : '<tr><td colspan="4" class="td-muted" style="text-align:center;padding:2rem">Sin emails programados</td></tr>';
 
   // Construye el header con enlaces clickeables (email mailto, whatsapp wa.me)
@@ -1603,6 +1603,14 @@ async function openLead(id) {
           const cls = dpct >= 70 ? 'fill-green' : dpct >= 45 ? 'fill-blue' : dpct >= 25 ? 'fill-amber' : 'fill-red';
           return `<div class="bar-wrap"><div class="bar-labels"><span>${d.name}</span><span>${d.score}/${d.max_score ?? d.max} (${dpct}%)</span></div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${dpct}%"></div></div></div>`;
         }).join('');
+        const notasHtml = (t.notas || []).length
+          ? `<div style="margin-top:12px"><span class="label-eyebrow">Notas del paciente</span><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">${
+              t.notas.map(n => `<div style="background:var(--bg-surface-2);border-radius:8px;padding:10px 12px;font-size:.85rem">
+                <div class="td-muted" style="font-size:.75rem;margin-bottom:4px">Pregunta ${n.pregunta}</div>
+                <div style="color:var(--text)">💬 ${n.nota}</div>
+              </div>`).join('')
+            }</div></div>`
+          : '';
         return `<div class="card" style="margin-bottom:1rem">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
             <div>
@@ -1617,6 +1625,7 @@ async function openLead(id) {
             </div>
           </div>
           ${dimsHtml ? `<div style="margin-top:10px"><span class="label-eyebrow">Dimensiones</span><div style="margin-top:10px">${dimsHtml}</div></div>` : ''}
+          ${notasHtml}
         </div>`;
       }).join('') : '<div class="empty-state"><div class="empty-title">Sin tests realizados</div><div class="empty-msg">Cuando este paciente complete el Test A o B aparecerán aquí.</div></div>'}
     </div>
@@ -1629,7 +1638,7 @@ async function openLead(id) {
 
     <div class="tab-panel" id="tab-emails-tab">
       <div class="card">
-        <table><thead><tr><th>Paso</th><th>Asunto</th><th>Estado</th><th>Programado</th></tr></thead>
+        <table><thead><tr><th>Email</th><th>Asunto</th><th>Estado</th><th>Programado</th></tr></thead>
         <tbody>${emailRows}</tbody></table>
       </div>
     </div>
@@ -1770,11 +1779,12 @@ async function saveNote(leadId) {
 async function loadEmails() {
   const data = await api('/api/email-queue');
   const tbody = document.getElementById('emails-tbody');
-  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay emails en cola</td></tr>'; return; }
+  const rows = (data && data.emails) || [];
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:2rem">No hay emails en cola</td></tr>'; return; }
   const statusPill = { pending: 'pill-amber', sent: 'pill-green', failed: 'pill-red', cancelled: 'pill-blue' };
-  tbody.innerHTML = data.map(e => `<tr>
+  tbody.innerHTML = rows.map(e => `<tr>
     <td class="td-name" onclick="openLead(${e.lead_id})">Lead #${e.lead_id}</td>
-    <td>Paso ${e.step}</td>
+    <td>${e.template_key || '—'}</td>
     <td>${e.subject || '—'}</td>
     <td><span class="pill ${statusPill[e.status]}">${e.status}</span></td>
     <td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td>

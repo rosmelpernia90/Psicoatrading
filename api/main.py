@@ -126,19 +126,14 @@ class DimensionScore(Base):
     percentage = Column(DECIMAL(5, 2), nullable=False)
 
 
-class EmailQueue(Base):
-    __tablename__ = "email_queue"
-    id = Column(Integer, primary_key=True, index=True)
-    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=False)
-    email_type = Column(String(50), nullable=False)
-    sequence_number = Column(Integer, nullable=False)
-    subject = Column(String(500))
-    body_html = Column(Text)
-    status = Column(SAEnum("pending", "sent", "failed"), default="pending")
-    scheduled_at = Column(DateTime, nullable=False)
-    sent_at = Column(DateTime)
-    error_message = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+class TestNota(Base):
+    __tablename__ = "test_notas"
+    id              = Column(Integer, primary_key=True, index=True)
+    test_result_id  = Column(Integer, ForeignKey("test_results.id", ondelete="CASCADE"), nullable=False)
+    lead_id         = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False)
+    pregunta        = Column(Integer, nullable=False)
+    nota            = Column(Text, nullable=False)
+    created_at      = Column(DateTime, default=datetime.utcnow)
 
 
 class SessionModel(Base):
@@ -370,6 +365,11 @@ class EmailQueue(Base):
 # ============================================
 # SCHEMAS (Pydantic)
 # ============================================
+class TestNotaIn(BaseModel):
+    pregunta: int
+    nota: str
+
+
 class TestResultSubmit(BaseModel):
     name: str
     email: EmailStr
@@ -386,6 +386,7 @@ class TestResultSubmit(BaseModel):
     risk_level: Optional[str] = None
     answers: Optional[dict] = None
     dimensions: List[dict]
+    notas: Optional[List[TestNotaIn]] = []
 
 
 class ContactSubmit(BaseModel):
@@ -540,6 +541,7 @@ class FormTestSubmit(BaseModel):
     dimensions: Optional[List[dict]] = None
     max_score: Optional[float] = None
     percentile: Optional[float] = None
+    notas: Optional[List[TestNotaIn]] = []
 
 
 class FormNewsletterSubmit(BaseModel):
@@ -592,39 +594,34 @@ def require_psychologist_or_admin(payload: dict = Depends(verify_token)):
 # ============================================
 # EMAIL SEQUENCES
 # ============================================
-EMAIL_SEQUENCES = [
-    {"type": "welcome", "seq": 1, "delay_hours": 0,
-     "subject": "Tu perfil psicolÃ³gico de trader estÃ¡ listo ðŸ§ ",
-     "template": "Hola {name}, gracias por completar el test. Tu perfil es: {profile}. En los prÃ³ximos dÃ­as te enviaremos contenido personalizado para mejorar tu psicologÃ­a de trading."},
-    {"type": "deep_dive", "seq": 2, "delay_hours": 48,
-     "subject": "Tu principal desafÃ­o como trader (y cÃ³mo superarlo)",
-     "template": "Hola {name}, basados en tu perfil ({profile}), tu principal desafÃ­o es el control emocional durante las operaciones. AquÃ­ te explicamos cÃ³mo trabajamos este aspecto..."},
-    {"type": "social_proof", "seq": 3, "delay_hours": 120,
-     "subject": "CÃ³mo Juan pasÃ³ de perder 3 fondeos a ser consistente",
-     "template": "Hola {name}, queremos compartirte el caso de un trader que tenÃ­a un perfil similar al tuyo..."},
-    {"type": "free_resource", "seq": 4, "delay_hours": 168,
-     "subject": "Regalo: GuÃ­a de autoregulaciÃ³n emocional para traders ðŸ“–",
-     "template": "Hola {name}, como parte de nuestro compromiso con tu desarrollo, te compartimos nuestra guÃ­a gratuita de autoregulaciÃ³n emocional..."},
-    {"type": "last_call", "seq": 5, "delay_hours": 240,
-     "subject": "Tu sesiÃ³n diagnÃ³stico gratuita te espera (Ãºltimos cupos)",
-     "template": "Hola {name}, hace 10 dÃ­as completaste tu test y tu perfil revelÃ³ Ã¡reas importantes de trabajo. Â¿Ya agendaste tu sesiÃ³n diagnÃ³stico gratuita? Los cupos son limitados..."},
-]
+def schedule_email_sequence(db, lead, test_type, profile_name, dimensiones_dict):
+    """Envia Email 1 inmediato + notificacion admin, y programa los 4 emails
+    siguientes (dias 2, 5, 7, 10) en la cola SMTP."""
+    email_1 = template_test_email_1_bienvenida(
+        nombre=lead.name, test_tipo=test_type,
+        perfil=profile_name, dimensiones=dimensiones_dict
+    )
+    email_service.send_email(to_email=lead.email, subject=email_1["subject"], html_body=email_1["html"])
 
+    notif = template_test_notificacion_admin(
+        nombre=lead.name, email=lead.email, pais=lead.country or "",
+        test_tipo=test_type, perfil=profile_name
+    )
+    email_service.send_email(to_email="admin@psicoatrading.online", subject=notif["subject"], html_body=notif["html"])
 
-def schedule_email_sequence(db: Session, lead_id: int, lead_name: str, profile_name: str):
     now = datetime.utcnow()
-    for seq in EMAIL_SEQUENCES:
-        body = seq["template"].format(name=lead_name, profile=profile_name)
-        email = EmailQueue(
-            lead_id=lead_id,
-            email_type=seq["type"],
-            sequence_number=seq["seq"],
-            subject=seq["subject"],
-            body_html=body,
-            status="pending",
-            scheduled_at=now + timedelta(hours=seq["delay_hours"])
-        )
-        db.add(email)
+    scheduled_emails = [
+        {"template_key": "test_email_2", "scheduled_at": now + timedelta(days=2)},
+        {"template_key": "test_email_3", "scheduled_at": now + timedelta(days=5)},
+        {"template_key": "test_email_4", "scheduled_at": now + timedelta(days=7)},
+        {"template_key": "test_email_5", "scheduled_at": now + timedelta(days=10)},
+    ]
+    for item in scheduled_emails:
+        db.add(EmailQueue(
+            lead_id=lead.id, to_email=lead.email, to_name=lead.name,
+            subject="", template_key=item["template_key"],
+            status="pending", scheduled_at=item["scheduled_at"]
+        ))
     db.commit()
 
 
@@ -839,6 +836,13 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
     )
     db.add(test_result)
     db.flush()
+
+    # Guardar notas opcionales del usuario por pregunta
+    for nota_item in (data.notas or []):
+        db.add(TestNota(
+            test_result_id=test_result.id, lead_id=lead.id,
+            pregunta=nota_item.pregunta, nota=nota_item.nota,
+        ))
 
     # Save dimension scores
     for dim in data.dimensions:
@@ -1056,11 +1060,22 @@ def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, sourc
     if lead.funnel_stage in (None, "nuevo"):
         lead.funnel_stage = "test_completed"
 
+    # Calcular desafio principal (dimension con puntaje mas bajo) y dict de dimensiones
+    desafio_principal = None
+    dimensiones_dict = {}
+    if data.dimensions:
+        min_dim = min(data.dimensions, key=lambda d: float(d.get("score", 0)))
+        desafio_principal = min_dim.get("code", min_dim.get("dimension_code", ""))
+        for d in data.dimensions:
+            dimensiones_dict[d.get("name", d.get("dimension_code", ""))] = float(d.get("score", 0))
+
     # Tambien creamos el TestResult clasico (mantiene compatibilidad con el panel actual)
     test_result = TestResult(
         lead_id=lead.id, test_type=expected_type,
         profile_name=data.perfil, profile_code=data.profile_code or "",
         total_score=data.score, answers_json=data.respuestas,
+        perfil=data.perfil, dimensiones=dimensiones_dict,
+        desafio_principal=desafio_principal,
     )
     db.add(test_result)
     db.flush()
@@ -1073,6 +1088,13 @@ def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, sourc
             dimension_name=dim.get("name", dim.get("dimension_code", "")),
             dimension_code=dim.get("code", dim.get("dimension_code", "")),
             score=sc, max_score=mx, percentage=pct,
+        ))
+
+    # Guardar notas opcionales del usuario por pregunta
+    for nota_item in (data.notas or []):
+        db.add(TestNota(
+            test_result_id=test_result.id, lead_id=lead.id,
+            pregunta=nota_item.pregunta, nota=nota_item.nota,
         ))
 
     # Registrar tambien en lead_submissions
@@ -1092,8 +1114,8 @@ def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, sourc
     db.add(sub)
     db.commit()
 
-    # Disparar secuencia de emails (preserva el comportamiento actual)
-    schedule_email_sequence(db, lead.id, lead.name, data.perfil)
+    # Disparar secuencia de emails (Email 1 inmediato + 4 programados en cola)
+    schedule_email_sequence(db, lead, expected_type, data.perfil, dimensiones_dict)
 
     return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
             "test_result_id": test_result.id,
@@ -1516,7 +1538,13 @@ def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = 
     tests = db.query(TestResult).filter(TestResult.lead_id == lead_id).all()
     notes = db.query(ClinicalNote).filter(ClinicalNote.lead_id == lead_id).order_by(ClinicalNote.created_at.desc()).all()
     sessions_list = db.query(SessionModel).filter(SessionModel.lead_id == lead_id).order_by(SessionModel.scheduled_at.desc()).all()
-    emails = db.query(EmailQueue).filter(EmailQueue.lead_id == lead_id).order_by(EmailQueue.sequence_number).all()
+    emails = db.query(EmailQueue).filter(EmailQueue.lead_id == lead_id).order_by(EmailQueue.scheduled_at).all()
+    test_notas_all = db.query(TestNota).filter(TestNota.lead_id == lead_id).order_by(TestNota.pregunta.asc()).all()
+    notas_by_test = {}
+    for tn in test_notas_all:
+        notas_by_test.setdefault(tn.test_result_id, []).append(
+            {"pregunta": tn.pregunta, "nota": tn.nota}
+        )
 
     return {
         "lead": {
@@ -1535,7 +1563,8 @@ def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = 
                      "score": float(d.score), "max_score": float(d.max_score),
                      "percentage": float(d.percentage)}
                     for d in t.dimensions
-                ]
+                ],
+                "notas": notas_by_test.get(t.id, [])
             }
             for t in tests
         ],
@@ -1557,7 +1586,7 @@ def get_lead(lead_id: int, payload: dict = Depends(verify_token), db: Session = 
         ],
         "emails": [
             {
-                "id": e.id, "email_type": e.email_type, "sequence_number": e.sequence_number,
+                "id": e.id, "template_key": e.template_key,
                 "subject": e.subject, "status": e.status,
                 "scheduled_at": e.scheduled_at.isoformat() if e.scheduled_at else None,
                 "sent_at": e.sent_at.isoformat() if e.sent_at else None
@@ -1649,9 +1678,9 @@ def get_email_queue(
     return {
         "emails": [
             {
-                "id": e.id, "lead_id": e.lead_id, "email_type": e.email_type,
-                "sequence_number": e.sequence_number, "subject": e.subject,
-                "status": e.status,
+                "id": e.id, "lead_id": e.lead_id, "to_email": e.to_email,
+                "to_name": e.to_name, "template_key": e.template_key, "subject": e.subject,
+                "status": e.status, "attempts": e.attempts,
                 "scheduled_at": e.scheduled_at.isoformat() if e.scheduled_at else None,
                 "sent_at": e.sent_at.isoformat() if e.sent_at else None,
                 "error_message": e.error_message
