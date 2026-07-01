@@ -317,60 +317,59 @@ def template_test_notificacion_admin(nombre: str, email: str, pais: str, test_ti
 def template_pago_confirmacion(nombre: str, plan_nombre: str, precio_usd: float, username: str, temp_password: str = None) -> dict:
     acceso_html = ""
     if temp_password:
-        acceso_html = f'''
+        acceso_html = f"""
         <div style="background-color:#F0FDFA;border:1px solid #99F6E4;border-radius:8px;padding:20px;margin:20px 0;">
-            <h3 style="color:#0B1426;margin:0 0 12px;">?? Tus datos de acceso al portal</h3>
+            <h3 style="color:#0B1426;margin:0 0 12px;">🔐 Tus datos de acceso al portal</h3>
             <table style="width:100%;">
                 <tr><td style="padding:4px 0;font-weight:bold;color:#475569;">Usuario:</td><td style="color:#0B1426;">{username}</td></tr>
-                <tr><td style="padding:4px 0;font-weight:bold;color:#475569;">Contrase�a temporal:</td><td style="color:#0B1426;font-family:monospace;font-size:16px;">{temp_password}</td></tr>
+                <tr><td style="padding:4px 0;font-weight:bold;color:#475569;">Contraseña temporal:</td><td style="color:#0B1426;font-family:monospace;font-size:16px;">{temp_password}</td></tr>
             </table>
-            <p style="color:#64748B;font-size:12px;margin:12px 0 0;">Te recomendamos cambiar tu contrase�a despu�s del primer ingreso.</p>
+            <p style="color:#64748B;font-size:12px;margin:12px 0 0;">Te recomendamos cambiar tu contraseña después del primer ingreso.</p>
         </div>
-        '''
+        """
     
-    content = f'''
-        <h2 style="color:#0B1426;margin:0 0 16px;">�Pago confirmado, {nombre}!</h2>
+    content = f"""
+        <h2 style="color:#0B1426;margin:0 0 16px;">¡Pago confirmado, {nombre}!</h2>
         <p>Tu plan <strong>{plan_nombre}</strong> ha sido activado exitosamente.</p>
         
         <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:16px;margin:16px 0;">
             <table style="width:100%;">
                 <tr><td style="padding:4px 0;color:#64748B;">Plan:</td><td style="color:#0B1426;font-weight:bold;">{plan_nombre}</td></tr>
-                <tr><td style="padding:4px 0;color:#64748B;">Monto:</td><td style="color:#0B1426;font-weight:bold;">USD </td></tr>
-                <tr><td style="padding:4px 0;color:#64748B;">Estado:</td><td style="color:#16A34A;font-weight:bold;">? Aprobado</td></tr>
+                <tr><td style="padding:4px 0;color:#64748B;">Monto:</td><td style="color:#0B1426;font-weight:bold;">USD ${precio_usd:,.0f}</td></tr>
+                <tr><td style="padding:4px 0;color:#64748B;">Estado:</td><td style="color:#16A34A;font-weight:bold;">✓ Aprobado</td></tr>
             </table>
         </div>
         
         {acceso_html}
         
         <p style="text-align:center;margin:24px 0;">
-            <a href="https://psicoatrading.online/app/" style="display:inline-block;background-color:#2DD4BF;color:#0B1426;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Acceder al portal ?</a>
+            <a href="https://psicoatrading.online/app/" style="display:inline-block;background-color:#2DD4BF;color:#0B1426;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Acceder al portal →</a>
         </p>
         
-        <p>Si tienes alguna pregunta, responde a este email o escr�benos por WhatsApp.</p>
+        <p>Si tienes alguna pregunta, responde a este email o escríbenos por WhatsApp.</p>
         <p style="margin-top:24px;">Bienvenido/a al programa,<br><strong>Equipo PsicoaTrading</strong></p>
-    '''
+    """
     return {
-        "subject": f"? Pago confirmado � {plan_nombre} � PsicoaTrading",
+        "subject": f"✅ Pago confirmado — {plan_nombre} — PsicoaTrading",
         "html": get_base_template(content)
     }
 
 def template_pago_notificacion_admin(nombre: str, email: str, plan_nombre: str, precio_usd: float, pais: str, reference: str) -> dict:
-    content = f'''
-        <h2 style="color:#0B1426;margin:0 0 16px;">?? Nuevo pago recibido</h2>
+    content = f"""
+        <h2 style="color:#0B1426;margin:0 0 16px;">💰 Nuevo pago recibido</h2>
         <table style="width:100%;border-collapse:collapse;">
             <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Cliente:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">{nombre}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Email:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">{email}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Pa�s:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">{pais}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">País:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">{pais}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Plan:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;"><strong>{plan_nombre}</strong></td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Monto:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">USD </td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0;font-weight:bold;">Monto:</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;">USD ${precio_usd:,.0f}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Referencia:</td><td style="padding:8px;">{reference}</td></tr>
         </table>
         <p style="margin-top:20px;">
-            <a href="https://psicoatrading.online/app/" style="display:inline-block;background-color:#2DD4BF;color:#0B1426;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Ver en la app ?</a>
+            <a href="https://psicoatrading.online/app/" style="display:inline-block;background-color:#2DD4BF;color:#0B1426;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Ver en la app →</a>
         </p>
-    '''
+    """
     return {
-        "subject": f"?? Nuevo pago: {nombre} ? {plan_nombre} (USD )",
+        "subject": f"💰 Nuevo pago: {nombre} → {plan_nombre} (USD ${precio_usd:,.0f})",
         "html": get_base_template(content)
     }
-

@@ -832,7 +832,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(send_diary_reminders, "interval", hours=24)
     scheduler.add_job(check_expired_subscriptions, "interval", hours=1)
     scheduler.start()
-    print("✅ PsicoaTrading API running — email scheduler active")
+    print("[OK] PsicoaTrading API running - email scheduler active")
     yield
     scheduler.shutdown()
 
@@ -2905,7 +2905,7 @@ async def payment_status(reference: str, db: Session = Depends(get_db)):
     return {"status": "PENDING", "plan": "", "payment_method": ""}
 
 @app.get("/api/admin/payments")
-async def list_payments(status: str = None, plan: str = None, admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+async def list_payments(status: str = None, plan: str = None, payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     q = db.query(Payment, PlanSubscription, Lead).join(PlanSubscription, PlanSubscription.id == Payment.plan_subscription_id).join(Lead, Lead.id == Payment.lead_id)
     if status:
         q = q.filter(Payment.status == status)
@@ -2933,7 +2933,7 @@ async def list_payments(status: str = None, plan: str = None, admin = Depends(ge
     return res
 
 @app.get("/api/admin/payments/kpis")
-async def payment_kpis(admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+async def payment_kpis(payload: dict = Depends(require_admin), db: Session = Depends(get_db)):
     from sqlalchemy import func, extract
     current_month = datetime.utcnow().month
     current_year = datetime.utcnow().year
