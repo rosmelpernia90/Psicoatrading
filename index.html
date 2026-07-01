@@ -15,6 +15,8 @@
   /* brand — derived from logo: teal-emerald brain + warm amber ring */
   --gold:#0f8f7a;--gold2:#16a892;--gold3:#5fcfba;--gold-soft:#e2f4f0;--gold-line:rgba(22,168,146,.32);
   --amber:#df8a1f;--amber2:#eda02f;--amber3:#f6bf68;--amber-soft:#fbecd4;--amber-line:rgba(223,138,31,.36);
+  /* alias de marca turquesa para módulo de Planes */
+  --brand3:#2DD4BF;--brand-bright:#6FD0C4;
   --teal:#2f9d6a;--teal-soft:#e6f4ec;--teal-line:#bfe3cd;
   --blue:#1a6bb5;--blue-soft:#eaf2fb;--blue-line:#c2daf5;
   --red:#c13628;--red-soft:#fbe9e6;--red-line:#eebcb4;
@@ -439,7 +441,70 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   .fg2{grid-template-columns:1fr}
   .annc-in{font-size:.76rem;padding:8px 1rem}
 }
+
+/* ===== PLANES (pago Wompi) ===== */
+.plans-dark{background:var(--dark);position:relative;overflow:hidden}
+.plans-dark::before{content:'';position:absolute;top:-25%;left:50%;transform:translateX(-50%);width:820px;height:820px;border-radius:50%;background:radial-gradient(circle,rgba(22,168,146,.12),transparent 62%);pointer-events:none}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:center;position:relative;max-width:1080px;margin:0 auto}
+.plan{background:#152136;border:1px solid #334155;border-radius:18px;padding:2.2rem 1.9rem;display:flex;flex-direction:column;position:relative;transition:transform .28s var(--ease),box-shadow .28s var(--ease),border-color .28s}
+.plan:hover{transform:translateY(-4px);box-shadow:0 22px 60px rgba(0,0,0,.4)}
+.plan.featured{border-color:var(--brand3);transform:scale(1.05);box-shadow:0 24px 64px rgba(22,168,146,.18)}
+.plan.featured:hover{transform:scale(1.05) translateY(-4px)}
+.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--brand3);color:#06201d;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 15px;border-radius:var(--r-pill,30px);white-space:nowrap;box-shadow:0 6px 18px rgba(22,168,146,.4)}
+.plan-tier{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brand3);font-weight:700;margin-bottom:.5rem}
+.plan-name{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:600;color:#F1F5F9;margin-bottom:.3rem;line-height:1.15}
+.plan-desc{font-size:.85rem;color:#94A3B8;font-weight:300;margin-bottom:1.4rem}
+.plan-price{display:flex;align-items:baseline;gap:4px;margin-bottom:.2rem}
+.plan-price .amt{font-family:'Playfair Display',serif;font-size:2.9rem;font-weight:600;color:#F1F5F9;line-height:1}
+.plan-price .amt sup{font-size:1.15rem;vertical-align:super;color:var(--brand3)}
+.plan-period{font-size:.85rem;color:#94A3B8;font-weight:400}
+.plan-old{font-size:.95rem;color:#64748B;text-decoration:line-through;margin-bottom:1.5rem;margin-top:.3rem}
+.plan-feats{list-style:none;display:flex;flex-direction:column;gap:11px;margin:1.5rem 0 1.8rem;flex:1}
+.plan-feats li{display:flex;align-items:flex-start;gap:10px;font-size:.9rem;color:#CBD5E1;font-weight:300;line-height:1.45}
+.plan-feats li svg{flex-shrink:0;margin-top:2px;color:var(--brand3)}
+.plan-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:var(--r-xs);font-family:inherit;font-size:.92rem;font-weight:600;cursor:pointer;transition:all .22s var(--ease);background:transparent;border:1.5px solid var(--brand3);color:var(--brand3)}
+.plan-btn:hover{background:rgba(22,168,146,.12);transform:translateY(-1px)}
+.plan-btn.solid{background:var(--brand3);border-color:var(--brand3);color:#06201d;box-shadow:0 8px 22px rgba(22,168,146,.34)}
+.plan-btn.solid:hover{background:var(--brand-bright,#6FD0C4);filter:brightness(1.05)}
+.plans-note{text-align:center;color:#64748B;font-size:.85rem;margin-top:2.4rem;position:relative;font-weight:300}
+.plans-note svg{width:15px;height:15px;vertical-align:-3px;margin-right:5px;color:var(--brand3)}
+
+/* ---- Modal de pago ---- */
+.pay-overlay{position:fixed;inset:0;background:rgba(6,12,24,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding:5vh 1.2rem;overflow-y:auto}
+.pay-overlay.open{display:flex}
+.pay-modal{background:var(--white);border-radius:18px;max-width:460px;width:100%;box-shadow:0 30px 90px rgba(0,0,0,.5);animation:payIn .35s var(--ease);overflow:hidden;margin:auto}
+@keyframes payIn{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:none}}
+.pay-head{display:flex;align-items:center;justify-content:space-between;padding:1.4rem 1.6rem 1.1rem;border-bottom:1px solid var(--border)}
+.pay-head h3{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--ink)}
+.pay-x{width:34px;height:34px;border-radius:50%;background:var(--bg2);border:none;cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center;transition:.18s;flex-shrink:0}
+.pay-x:hover{background:var(--bg3);color:var(--ink)}
+.pay-body{padding:1.4rem 1.6rem 1.7rem}
+.pay-summary{display:flex;align-items:center;justify-content:space-between;background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:1.4rem}
+.pay-summary .ps-name{font-size:.82rem;color:var(--ink2);font-weight:500}
+.pay-summary .ps-plan{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;color:var(--ink)}
+.pay-summary .ps-price{text-align:right}
+.pay-summary .ps-amt{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:600;color:var(--gold)}
+.pay-summary .ps-per{font-size:.72rem;color:var(--ink3)}
+.pay-modal .fg{margin-bottom:1rem}
+.pay-secure{display:flex;align-items:center;justify-content:center;gap:7px;font-size:.76rem;color:var(--ink3);margin-top:1rem;font-weight:400}
+.pay-secure svg{width:14px;height:14px;color:var(--gold)}
+.pay-result{text-align:center;padding:2.4rem 1.6rem;animation:fadeInUp .5s var(--ease)}
+.pay-result .pr-ic{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:2px solid}
+.pay-result.ok .pr-ic{background:var(--teal-soft);border-color:var(--teal);color:var(--teal)}
+.pay-result.err .pr-ic{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.pay-result.wait .pr-ic{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+.pay-result h3{font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--ink);margin-bottom:10px}
+.pay-result p{color:var(--ink2);font-size:.95rem;line-height:1.55;font-weight:300;margin-bottom:6px}
+.pay-result .pr-actions{display:flex;flex-direction:column;gap:10px;margin-top:1.6rem}
+.pay-spin{width:44px;height:44px;border:3px solid var(--blue-soft);border-top-color:var(--blue);border-radius:50%;margin:0 auto 20px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:820px){
+  .plans-grid{grid-template-columns:1fr;max-width:420px;gap:26px}
+  .plan.featured{transform:none}
+  .plan.featured:hover{transform:translateY(-4px)}
+}
 </style>
+<script src="https://checkout.wompi.co/widget.js"></script>
 </head>
 <body>
 
@@ -464,6 +529,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <button class="nav-link active" id="nl-home" onclick="sp('home')">Inicio</button>
         <button class="nav-link" id="nl-test" onclick="sp('test-sel')">Tests</button>
         <button class="nav-link" id="nl-blog" onclick="sp('blog')">Blog</button>
+        <button class="nav-link" id="nl-planes" onclick="sp('planes')">Planes</button>
         <button class="nav-link" id="nl-contact" onclick="sp('contact')">Contacto</button>
         <button class="nav-cta" onclick="sp('test-sel')">Test Gratuito <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
@@ -477,6 +543,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   <button onclick="sp('home');closeMob()">Inicio</button>
   <button onclick="sp('test-sel');closeMob()">Tests Gratuitos</button>
   <button onclick="sp('blog');closeMob()">Blog</button>
+  <button onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('contact');closeMob()">Contacto</button>
   <button class="nav-cta" onclick="sp('test-sel');closeMob()">Hacer Test Gratuito →</button>
 </div>
@@ -759,6 +826,90 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   </div></section>
 </div>
 
+<!-- ===== PLANES ===== -->
+<div class="page" id="page-planes">
+  <div class="ph"><div class="container"><span class="eyebrow">Planes</span><h1 class="ph-title">Elige tu camino</h1><p class="ph-sub">Tres formas de trabajar tu psicología del trading. Pago seguro procesado por Wompi.</p></div></div>
+  <section class="section-sm plans-dark"><div class="container">
+    <div class="plans-grid">
+
+      <div class="plan reveal" data-d="1">
+        <div class="plan-tier">Comunidad</div>
+        <div class="plan-name">Trader Consciente</div>
+        <div class="plan-desc">El punto de entrada. Psicología en comunidad.</div>
+        <div class="plan-price"><span class="amt"><sup>$</sup>79</span><span class="plan-period">USD / mes</span></div>
+        <div class="plan-old">$100 USD</div>
+        <ul class="plan-feats">
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Comunidad privada de soporte</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Curso "Trader Consciente" (7 módulos)</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Ejercicios clínicos guiados</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Accountability entre pares</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Diario de trading psicológico</li>
+        </ul>
+        <button class="plan-btn" data-plan="Trader Consciente" data-price="79" data-period="mes" onclick="openPay(this)">Seleccionar <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+
+      <div class="plan featured reveal" data-d="2">
+        <div class="plan-badge">★ Más popular</div>
+        <div class="plan-tier">Acompañamiento 1:1</div>
+        <div class="plan-name">Asesoría Personalizada</div>
+        <div class="plan-desc">Acompañamiento clínico 1 a 1 con psicólogo.</div>
+        <div class="plan-price"><span class="amt"><sup>$</sup>399</span><span class="plan-period">USD / mes</span></div>
+        <div class="plan-old">$499 USD</div>
+        <ul class="plan-feats">
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Todo lo del plan Trader Consciente</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 4 sesiones 1 a 1 al mes (60 min)</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Plan de intervención personalizado</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Seguimiento de operaciones</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Soporte WhatsApp prioritario</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Diario revisado con feedback</li>
+        </ul>
+        <button class="plan-btn solid" data-plan="Asesoría Personalizada" data-price="399" data-period="mes" onclick="openPay(this)">Seleccionar <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+
+      <div class="plan reveal" data-d="3">
+        <div class="plan-tier">Premium</div>
+        <div class="plan-name">Transformación Total</div>
+        <div class="plan-desc">Programa intensivo de 12 semanas.</div>
+        <div class="plan-price"><span class="amt"><sup>$</sup>1,990</span></div>
+        <div class="plan-old">$2,499 USD · pago único</div>
+        <ul class="plan-feats">
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Todo lo de Asesoría Personalizada</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 12 sesiones 1 a 1 (programa 3 meses)</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Batería psicológica clínica completa</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Soporte prioritario 90 días</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Informe clínico final documentado</li>
+          <li><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Certificado de programa completado</li>
+        </ul>
+        <button class="plan-btn" data-plan="Transformación Total" data-price="1990" data-period="pago único" onclick="openPay(this)">Seleccionar <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+
+    </div>
+    <p class="plans-note"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Pago 100% seguro procesado por Wompi · Tarjeta, PSE, Nequi y más</p>
+  </div></section>
+</div>
+
+<!-- ===== MODAL DE PAGO ===== -->
+<div class="pay-overlay" id="payOverlay">
+  <div class="pay-modal" id="payModal">
+    <div class="pay-head">
+      <h3 id="payTitle">Completa tus datos</h3>
+      <button class="pay-x" onclick="closePay()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="pay-body" id="payBody">
+      <div class="pay-summary">
+        <div><div class="ps-name">Plan seleccionado</div><div class="ps-plan" id="paySumName">—</div></div>
+        <div class="ps-price"><div class="ps-amt" id="paySumAmt">—</div><div class="ps-per" id="paySumPer"></div></div>
+      </div>
+      <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="pay-nombre" type="text" placeholder="Tu nombre"></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="pay-email" type="email" placeholder="tu@email.com"></div>
+      <div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="pay-whatsapp" type="tel" placeholder="+57 300 000 0000"></div>
+      <div class="fg"><label class="fl">País</label><select class="fi country-select" id="pay-pais"><option value="">Selecciona tu país</option></select></div>
+      <button class="fsub" id="payContinue" onclick="continuePay()">Continuar al pago <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <div class="pay-secure"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Conexión segura · Procesado por Wompi</div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== FOOTER ===== -->
 <footer>
   <div class="container">
@@ -821,13 +972,122 @@ function prefillContact(){
     }
   }catch(e){}
 }
-const PAGES=['home','test-sel','test','results','blog','contact'];
+/* ===== PLANES · Pasarela Wompi ===== */
+// Endpoints backend (ajusta la base si tu API vive en otro dominio)
+const API_BASE='';
+let PAY={plan:'',price:0,period:''};
+function fmtUSD(n){return '$'+Number(n).toLocaleString('en-US');}
+function openPay(btn){
+  PAY={plan:btn.dataset.plan,price:+btn.dataset.price,period:btn.dataset.period};
+  document.getElementById('payTitle').textContent='Completa tus datos';
+  // reset body to form (in case a previous result was shown)
+  renderPayForm();
+  document.getElementById('paySumName').textContent=PAY.plan;
+  document.getElementById('paySumAmt').textContent=fmtUSD(PAY.price);
+  document.getElementById('paySumPer').textContent=PAY.period==='pago único'?'pago único':'USD / mes';
+  populateCountrySelects();
+  // prefill from localStorage
+  try{
+    const d=JSON.parse(localStorage.getItem('psicoatrading_user_data')||'null');
+    if(d){
+      if(d.nombre)document.getElementById('pay-nombre').value=d.nombre;
+      if(d.email)document.getElementById('pay-email').value=d.email;
+      if(d.pais){const s=document.getElementById('pay-pais');s.value=d.pais;}
+    }
+  }catch(e){}
+  const ov=document.getElementById('payOverlay');ov.classList.add('open');document.body.style.overflow='hidden';
+}
+function closePay(){document.getElementById('payOverlay').classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePay();});
+document.getElementById('payOverlay').addEventListener('click',e=>{if(e.target.id==='payOverlay')closePay();});
+
+function renderPayForm(){
+  document.getElementById('payBody').innerHTML=
+    '<div class="pay-summary"><div><div class="ps-name">Plan seleccionado</div><div class="ps-plan" id="paySumName">'+PAY.plan+'</div></div>'+
+    '<div class="ps-price"><div class="ps-amt" id="paySumAmt">'+fmtUSD(PAY.price)+'</div><div class="ps-per" id="paySumPer">'+(PAY.period==='pago único'?'pago único':'USD / mes')+'</div></div></div>'+
+    '<div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="pay-nombre" type="text" placeholder="Tu nombre"></div>'+
+    '<div class="fg"><label class="fl">Email</label><input class="fi" id="pay-email" type="email" placeholder="tu@email.com"></div>'+
+    '<div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="pay-whatsapp" type="tel" placeholder="+57 300 000 0000"></div>'+
+    '<div class="fg"><label class="fl">País</label><select class="fi country-select" id="pay-pais"><option value="">Selecciona tu país</option></select></div>'+
+    '<button class="fsub" id="payContinue" onclick="continuePay()">Continuar al pago '+ICN.arrBtn+'</button>'+
+    '<div class="pay-secure"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Conexión segura · Procesado por Wompi</div>';
+  populateCountrySelects();
+}
+
+function continuePay(){
+  const nombre=document.getElementById('pay-nombre').value.trim();
+  const email=document.getElementById('pay-email').value.trim();
+  const whatsapp=document.getElementById('pay-whatsapp').value.trim();
+  const pais=document.getElementById('pay-pais').value;
+  if(!nombre||!email||!/.+@.+\..+/.test(email)||!whatsapp||!pais){
+    let e=document.getElementById('payErr');
+    if(!e){e=document.createElement('div');e.id='payErr';e.className='cont-error';document.getElementById('payContinue').insertAdjacentElement('afterend',e);}
+    e.textContent='Completa todos los campos con datos válidos para continuar.';
+    setTimeout(()=>{if(e)e.remove();},4000);
+    return;
+  }
+  try{localStorage.setItem('psicoatrading_user_data',JSON.stringify({nombre,email,pais}));}catch(e){}
+  const btn=document.getElementById('payContinue');
+  btn.disabled=true;btn.style.opacity='.7';btn.innerHTML='Conectando… ';
+  const payload={nombre,email,whatsapp,pais,plan:PAY.plan,precio_usd:PAY.price,periodo:PAY.period};
+
+  fetch(API_BASE+'/api/plan-register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>{if(!r.ok)throw new Error('reg');return r.json();})
+    .then(res=>{ launchWompi(res,{nombre,email,whatsapp}); })
+    .catch(err=>{ payError(); });
+}
+
+function launchWompi(res,cust){
+  if(typeof WidgetCheckout==='undefined'){ payError('No se pudo cargar la pasarela de pago. Verifica tu conexión e intenta de nuevo.'); return; }
+  try{
+    const checkout=new WidgetCheckout({
+      currency:res.currency,
+      amountInCents:res.amount_in_cents,
+      reference:res.reference,
+      publicKey:res.public_key,
+      signature:{integrity:res.signature},
+      customerData:{email:cust.email,fullName:cust.nombre,phoneNumber:cust.whatsapp}
+    });
+    checkout.open(function(result){
+      payWait();
+      fetch(API_BASE+'/api/payment-status/'+encodeURIComponent(res.reference))
+        .then(r=>r.json())
+        .then(st=>{
+          const s=(st.status||'').toUpperCase();
+          if(s==='APPROVED') paySuccess();
+          else if(s==='PENDING') payWait(true);
+          else payDeclined();
+        })
+        .catch(()=>payWait(true));
+    });
+  }catch(e){ payError(); }
+}
+
+function payWait(persist){
+  document.getElementById('payTitle').textContent='Verificando pago';
+  document.getElementById('payBody').innerHTML='<div class="pay-result wait"><div class="pay-spin"></div><h3>Pago en proceso…</h3><p>Estamos confirmando tu transacción con Wompi.</p>'+(persist?'<p>Recibirás un email en cuanto se confirme. Puedes cerrar esta ventana.</p><div class="pr-actions"><button class="btn-nxt" onclick="closePay()">Entendido</button></div>':'')+'</div>';
+}
+function paySuccess(){
+  document.getElementById('payTitle').textContent='Pago confirmado';
+  document.getElementById('payBody').innerHTML='<div class="pay-result ok"><div class="pr-ic"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><h3>¡Pago exitoso!</h3><p>Tu plan <strong>'+PAY.plan+'</strong> ha sido activado.</p><p>Revisa tu email para acceder a tu portal y agendar tu primera sesión.</p><div class="pr-actions"><a class="btn-nxt" style="text-decoration:none" href="https://psicoatrading.online/app">Ir al portal '+ICN.arrBtn+'</a></div></div>';
+}
+function payDeclined(){
+  document.getElementById('payTitle').textContent='Pago no aprobado';
+  document.getElementById('payBody').innerHTML='<div class="pay-result err"><div class="pr-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div><h3>Pago no aprobado</h3><p>Tu transacción no pudo completarse. No se realizó ningún cargo.</p><div class="pr-actions"><button class="btn-nxt" onclick="renderPayForm()">Intentar de nuevo</button><button class="plan-btn" style="color:var(--gold);border-color:var(--gold-line)" onclick="closePay();sp(\'contact\')">Contactar soporte</button></div></div>';
+}
+function payError(msg){
+  document.getElementById('payTitle').textContent='Ups, algo salió mal';
+  document.getElementById('payBody').innerHTML='<div class="pay-result err"><div class="pr-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/></svg></div><h3>No pudimos procesar tu solicitud</h3><p>'+(msg||'Hubo un error al conectar con la pasarela. Por favor intenta de nuevo o escríbenos a admin@psicoatrading.online')+'</p><div class="pr-actions"><button class="btn-nxt" onclick="renderPayForm()">Intentar de nuevo</button></div></div>';
+}
+
+const PAGES=['home','test-sel','test','results','blog','planes','contact'];
 function sp(name){
   PAGES.forEach(p=>{const el=document.getElementById('page-'+p);if(el)el.classList.toggle('active',p===name);});
-  ['home','test','blog','contact'].forEach(k=>{const nl=document.getElementById('nl-'+k);if(nl)nl.classList.toggle('active',k===name||(k==='test'&&name==='test-sel'));});
+  ['home','test','blog','planes','contact'].forEach(k=>{const nl=document.getElementById('nl-'+k);if(nl)nl.classList.toggle('active',k===name||(k==='test'&&name==='test-sel'));});
   window.scrollTo(0,0);
   requestAnimationFrame(observeReveals);
   if(name==='contact') prefillContact();
+  if(name==='planes') populateCountrySelects();
 }
 
 /* ---- Trust marquee ---- */
@@ -981,27 +1241,8 @@ function calcRes(){
   const tot=Object.values(ds).reduce((a,b)=>a+b,0),maxT=t.questions.length*7,pct=Math.round(tot/maxT*100);
   const profs=t.id==='A'?pA:pB,maxSc=t.id==='A'?105:98,sc=Math.round(tot/maxT*maxSc);
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
-  const res={tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})};
-  showRes(res);sp('results');
-  saveTestResult(res);
-}
-function saveTestResult(r){
-  const t=r.tid==='A'?tA:tB;
-  const dimensions=Object.keys(t.dims).map(k=>{
-    const d=t.dims[k],score=r.ds[k]||0,max=d.m,pct2=Math.round(score/max*100);
-    return {name:d.n,code:k,score:score,max_score:max,percentage:pct2};
-  });
-  const respuestas={};Object.keys(ST.ans).forEach(i=>respuestas[i]=ST.ans[i]);
-  const payload={
-    name:r.ud.name,email:r.ud.email,pais:r.ud.country,
-    experiencia_trading:r.ud.exp,main_market:r.ud.mkt,
-    test_type:r.tid,score:r.sc,perfil:r.prof.name,
-    respuestas:respuestas,dimensions:dimensions,notas:r.notas||[]
-  };
-  const endpoint=r.tid==='A'?'/api/forms/test-a':'/api/forms/test-b';
-  fetch('https://psicoatrading.online'+endpoint,{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-  }).catch(err=>console.error('No se pudo guardar el resultado del test:',err));
+  ST.notesPayload=t.questions.map((q,i)=>({pregunta:i+1,dim:q.dim,nota:ST.notes[i]||null})).filter(n=>n.nota!==null);
+  showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
 }
 function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;
