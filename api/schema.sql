@@ -135,3 +135,63 @@ VALUES (
     'PsicologÃ­a del Trading',
     'admin'
 ) ON DUPLICATE KEY UPDATE name = name;
+
+
+CREATE TABLE IF NOT EXISTS plan_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lead_id INT NOT NULL,
+    plan_key VARCHAR(50) NOT NULL COMMENT 'trader_consciente, asesoria_1a1, transformacion_total',
+    plan_nombre VARCHAR(100) NOT NULL,
+    precio_usd DECIMAL(10,2) NOT NULL,
+    periodo ENUM('mensual','unico') NOT NULL,
+    status ENUM('pending_payment','active','expired','cancelled') DEFAULT 'pending_payment',
+    payment_reference VARCHAR(100) UNIQUE COMMENT 'Referencia única para Wompi',
+    wompi_transaction_id VARCHAR(100) NULL,
+    paid_at DATETIME NULL,
+    expires_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    INDEX idx_reference (payment_reference),
+    INDEX idx_status (status),
+    INDEX idx_lead (lead_id)
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    plan_subscription_id INT NOT NULL,
+    lead_id INT NOT NULL,
+    wompi_transaction_id VARCHAR(100) UNIQUE,
+    reference VARCHAR(100) NOT NULL,
+    amount_cop INT NOT NULL COMMENT 'Monto en centavos COP',
+    amount_usd DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'COP',
+    status ENUM('PENDING','APPROVED','DECLINED','VOIDED','ERROR') DEFAULT 'PENDING',
+    payment_method VARCHAR(50) NULL COMMENT 'CARD, PSE, BANCOLOMBIA_TRANSFER, etc.',
+    wompi_status_detail TEXT NULL COMMENT 'Detalle del estado de Wompi',
+    raw_webhook JSON NULL COMMENT 'Payload completo del webhook para auditoría',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_subscription_id) REFERENCES plan_subscriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    INDEX idx_transaction (wompi_transaction_id),
+    INDEX idx_reference (reference),
+    INDEX idx_status (status)
+);
+
+CREATE TABLE IF NOT EXISTS client_access (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lead_id INT NOT NULL,
+    plan_subscription_id INT NOT NULL,
+    username VARCHAR(255) NOT NULL COMMENT 'Email del usuario',
+    password_hash VARCHAR(255) NOT NULL COMMENT 'Hash de la contraseña generada',
+    temp_password VARCHAR(100) NULL COMMENT 'Contraseña temporal (se envía por email)',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+    FOREIGN KEY (plan_subscription_id) REFERENCES plan_subscriptions(id) ON DELETE CASCADE,
+    UNIQUE INDEX idx_username (username),
+    INDEX idx_lead (lead_id)
+);
+

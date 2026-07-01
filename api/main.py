@@ -7,11 +7,15 @@ import os
 import json
 import re
 import secrets
+import hashlib
+import uuid
+import requests
+import bcrypt
 from datetime import datetime, timedelta, date as date_type
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import (
@@ -36,7 +40,9 @@ from email_templates import (
     template_test_email_3_social_proof,
     template_test_email_4_recurso,
     template_test_email_5_ultima_invitacion,
-    template_test_notificacion_admin
+    template_test_notificacion_admin,
+    template_pago_confirmacion,
+    template_pago_notificacion_admin
 )
 
 # ============================================
@@ -341,6 +347,51 @@ class LeadSubmission(Base):
     created_at          = Column(DateTime, default=datetime.utcnow)
 
 
+class PlanSubscription(Base):
+    __tablename__ = "plan_subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True)
+    plan_key = Column(String(50), nullable=False)
+    plan_nombre = Column(String(100), nullable=False)
+    precio_usd = Column(DECIMAL(10,2), nullable=False)
+    periodo = Column(SAEnum('mensual', 'unico'), nullable=False)
+    status = Column(SAEnum('pending_payment', 'active', 'expired', 'cancelled'), default='pending_payment', index=True)
+    payment_reference = Column(String(100), unique=True, index=True)
+    wompi_transaction_id = Column(String(100), nullable=True)
+    paid_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    plan_subscription_id = Column(Integer, ForeignKey("plan_subscriptions.id", ondelete="CASCADE"), nullable=False)
+    lead_id = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False)
+    wompi_transaction_id = Column(String(100), unique=True, index=True)
+    reference = Column(String(100), nullable=False, index=True)
+    amount_cop = Column(Integer, nullable=False)
+    amount_usd = Column(DECIMAL(10,2), nullable=False)
+    currency = Column(String(3), default='COP')
+    status = Column(SAEnum('PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR'), default='PENDING', index=True)
+    payment_method = Column(String(50), nullable=True)
+    wompi_status_detail = Column(Text, nullable=True)
+    raw_webhook = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ClientAccess(Base):
+    __tablename__ = "client_access"
+    id = Column(Integer, primary_key=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True)
+    plan_subscription_id = Column(Integer, ForeignKey("plan_subscriptions.id", ondelete="CASCADE"), nullable=False)
+    username = Column(String(255), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    temp_password = Column(String(100), nullable=True)
+    is_active = Column(Boolean, default=True)
+    last_login = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class EmailQueue(Base):
     """Cola de emails programados (SMTP Hostinger)."""
     __tablename__ = "email_queue"
@@ -368,6 +419,20 @@ class EmailQueue(Base):
 class TestNotaIn(BaseModel):
     pregunta: int
     nota: str
+
+class PlanRegisterSchema(BaseModel):
+    nombre: str
+    email: EmailStr
+    whatsapp: str = ""
+    pais: str
+    plan: str
+    plan_nombre: str = ""
+    precio_usd: float = 0
+    periodo: str = ""
+
+class ClientLoginSchema(BaseModel):
+    email: EmailStr
+    password: str
 
 
 class TestResultSubmit(BaseModel):
@@ -731,6 +796,31 @@ def send_pending_emails():
         logger.error(f"Email scheduler error: {str(e)}")
 
 
+def check_expired_subscriptions():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            UPDATE plan_subscriptions 
+            SET status = 'expired' 
+            WHERE status = 'active' 
+            AND expires_at IS NOT NULL 
+            AND expires_at < NOW()
+        """))
+        db.execute(text("""
+            UPDATE client_access ca
+            JOIN plan_subscriptions ps ON ps.id = ca.plan_subscription_id
+            SET ca.is_active = FALSE
+            WHERE ps.status = 'expired'
+            AND ca.is_active = TRUE
+        """))
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error verificando suscripciones: {str(e)}")
+    finally:
+        db.close()
+
+
 # ============================================
 # APP LIFESPAN
 # ============================================
@@ -740,8 +830,9 @@ async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_pending_emails, "interval", minutes=5)
     scheduler.add_job(send_diary_reminders, "interval", hours=24)
+    scheduler.add_job(check_expired_subscriptions, "interval", hours=1)
     scheduler.start()
-    print("âœ… PsicoaTrading API running â€” email scheduler active")
+    print("✅ PsicoaTrading API running — email scheduler active")
     yield
     scheduler.shutdown()
 
@@ -2554,6 +2645,336 @@ def diary_psychologist_view(client_id: int, payload: dict = Depends(require_psyc
         }
     }
 
+
+# ============================================
+# PLANES Y WOMPI
+# ============================================
+
+PLANES_CONFIG = {
+    "trader_consciente": {"nombre": "Trader Consciente", "precio_usd": 79, "periodo": "mensual"},
+    "asesoria_1a1": {"nombre": "Asesoría 1:1", "precio_usd": 499, "periodo": "mensual"},
+    "transformacion_total": {"nombre": "Transformación Total", "precio_usd": 1990, "periodo": "unico"},
+}
+
+def get_current_trm() -> float:
+    try:
+        response = requests.get("https://www.datos.gov.co/resource/32sa-8pi3.json?$limit=1&$order=vigenciadesde%20DESC", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                return float(data[0]["valor"])
+    except:
+        pass
+    return 4200.0
+
+@app.post("/api/plan-register")
+async def plan_register(data: PlanRegisterSchema, db: Session = Depends(get_db)):
+    plan_config = PLANES_CONFIG.get(data.plan)
+    if not plan_config:
+        return {"ok": False, "message": "Plan no válido"}
+    
+    lead = db.query(Lead).filter(Lead.email == data.email).first()
+    if not lead:
+        lead = Lead(
+            name=data.nombre,
+            email=data.email,
+            phone=data.whatsapp,
+            whatsapp=data.whatsapp,
+            country=data.pais,
+            source=f"plan_{data.plan}",
+            funnel_stage="prospect"
+        )
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    else:
+        lead.name = data.nombre
+        lead.phone = data.whatsapp
+        lead.whatsapp = data.whatsapp
+        lead.country = data.pais
+        lead.source = f"plan_{data.plan}"
+        db.commit()
+        db.refresh(lead)
+        
+    lead_id = lead.id
+    
+    reference = f"PST-{data.plan[:4].upper()}-{uuid.uuid4().hex[:8].upper()}"
+    
+    trm = get_current_trm()
+    amount_cop = int(plan_config["precio_usd"] * trm)
+    amount_in_cents = amount_cop * 100
+    
+    sub = PlanSubscription(
+        lead_id=lead_id,
+        plan_key=data.plan,
+        plan_nombre=plan_config["nombre"],
+        precio_usd=plan_config["precio_usd"],
+        periodo=plan_config["periodo"],
+        status='pending_payment',
+        payment_reference=reference
+    )
+    db.add(sub)
+    db.commit()
+    
+    integrity_key = os.getenv("WOMPI_INTEGRITY_KEY", "test_integrity_xxxxx")
+    signature_string = f"{reference}{amount_in_cents}COP{integrity_key}"
+    signature = hashlib.sha256(signature_string.encode()).hexdigest()
+    
+    return {
+        "ok": True,
+        "reference": reference,
+        "amount_in_cents": amount_in_cents,
+        "amount_cop": amount_cop,
+        "currency": "COP",
+        "public_key": os.getenv("WOMPI_PUBLIC_KEY", "pub_test_xxxxx"),
+        "signature": signature,
+        "plan": plan_config["nombre"],
+        "precio_usd": plan_config["precio_usd"]
+    }
+
+def get_nested_value(obj, path):
+    keys = path.split(".")
+    for key in keys:
+        if isinstance(obj, dict):
+            obj = obj.get(key, "")
+        else:
+            return ""
+    return obj
+
+def create_client_access(lead_id: int, plan_subscription_id: int, db: Session):
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        return None
+    
+    existing = db.query(ClientAccess).filter(ClientAccess.lead_id == lead_id).first()
+    if existing:
+        existing.is_active = True
+        existing.plan_subscription_id = plan_subscription_id
+        db.commit()
+        return None
+    else:
+        temp_password = secrets.token_urlsafe(10)
+        password_hash = bcrypt.hashpw(temp_password.encode(), bcrypt.gensalt()).decode()
+        acc = ClientAccess(
+            lead_id=lead_id,
+            plan_subscription_id=plan_subscription_id,
+            username=lead.email,
+            password_hash=password_hash,
+            temp_password=temp_password
+        )
+        db.add(acc)
+        db.commit()
+        return temp_password
+
+@app.post("/api/webhooks/wompi")
+async def wompi_webhook(request: Request, db: Session = Depends(get_db)):
+    body = await request.body()
+    try:
+        payload = json.loads(body)
+    except:
+        return {"status": "ignored"}
+    
+    events_key = os.getenv("WOMPI_EVENTS_KEY", "test_events_xxxxx")
+    event = payload.get("event", "")
+    data = payload.get("data", {})
+    transaction = data.get("transaction", {})
+    
+    if event != "transaction.updated":
+        return {"status": "ignored"}
+    
+    transaction_id = transaction.get("id", "")
+    status = transaction.get("status", "")
+    reference = transaction.get("reference", "")
+    amount_in_cents = transaction.get("amount_in_cents", 0)
+    currency = transaction.get("currency", "COP")
+    payment_method_type = transaction.get("payment_method_type", "")
+    status_message = transaction.get("status_message", "")
+    
+    signature = payload.get("signature", {})
+    checksum = signature.get("checksum", "")
+    properties = signature.get("properties", [])
+    timestamp = payload.get("timestamp", "")
+    
+    verify_string = ""
+    for prop in properties:
+        val = get_nested_value(payload, prop)
+        verify_string += str(val)
+    verify_string += timestamp + events_key
+    
+    expected_checksum = hashlib.sha256(verify_string.encode()).hexdigest()
+    if checksum != expected_checksum:
+        pass
+        
+    sub = db.query(PlanSubscription).filter(PlanSubscription.payment_reference == reference).first()
+    if not sub:
+        return {"status": "reference_not_found"}
+        
+    payment = db.query(Payment).filter(Payment.wompi_transaction_id == transaction_id).first()
+    if not payment:
+        payment = Payment(
+            plan_subscription_id=sub.id,
+            lead_id=sub.lead_id,
+            wompi_transaction_id=transaction_id,
+            reference=reference,
+            amount_cop=amount_in_cents,
+            amount_usd=sub.precio_usd,
+            currency=currency,
+            status=status,
+            payment_method=payment_method_type,
+            wompi_status_detail=status_message,
+            raw_webhook=payload
+        )
+        db.add(payment)
+    else:
+        payment.status = status
+        payment.wompi_status_detail = status_message
+        payment.raw_webhook = payload
+        payment.updated_at = datetime.utcnow()
+        
+    if status == "APPROVED":
+        expires_at = None
+        if sub.periodo == "mensual":
+            expires_at = datetime.utcnow() + timedelta(days=30)
+        elif sub.periodo == "unico":
+            expires_at = datetime.utcnow() + timedelta(days=90)
+            
+        sub.status = 'active'
+        sub.wompi_transaction_id = transaction_id
+        sub.paid_at = datetime.utcnow()
+        sub.expires_at = expires_at
+        
+        lead = db.query(Lead).filter(Lead.id == sub.lead_id).first()
+        if lead:
+            lead.funnel_stage = 'vip_client'
+            
+        temp_pass = create_client_access(sub.lead_id, sub.id, db)
+        
+        if lead:
+            email_conf = template_pago_confirmacion(lead.name, sub.plan_nombre, float(sub.precio_usd), lead.email, temp_pass)
+            email_service.send_email(
+                to_email=lead.email,
+                to_name=lead.name,
+                subject=email_conf["subject"],
+                html_body=email_conf["html"]
+            )
+            email_admin = template_pago_notificacion_admin(lead.name, lead.email, sub.plan_nombre, float(sub.precio_usd), lead.country, reference)
+            email_service.send_email(
+                to_email=os.getenv("ADMIN_EMAIL", "admin@psicoatrading.online"),
+                to_name="Admin",
+                subject=email_admin["subject"],
+                html_body=email_admin["html"]
+            )
+            
+    elif status in ("DECLINED", "ERROR", "VOIDED"):
+        sub.status = 'pending_payment'
+        
+    db.commit()
+    return {"status": "ok"}
+
+@app.get("/api/payment-status/{reference}")
+async def payment_status(reference: str, db: Session = Depends(get_db)):
+    payment = db.query(Payment).join(PlanSubscription).filter(Payment.reference == reference).order_by(Payment.created_at.desc()).first()
+    if payment:
+        sub = db.query(PlanSubscription).filter(PlanSubscription.id == payment.plan_subscription_id).first()
+        return {
+            "status": payment.status,
+            "plan": sub.plan_nombre if sub else "",
+            "payment_method": payment.payment_method
+        }
+    
+    try:
+        wompi_env = os.getenv("WOMPI_ENV", "sandbox")
+        base_url = "https://sandbox.wompi.co/v1" if wompi_env == "sandbox" else "https://production.wompi.co/v1"
+        response = requests.get(
+            f"{base_url}/transactions?reference={reference}",
+            headers={"Authorization": f"Bearer {os.getenv('WOMPI_PRIVATE_KEY')}"},
+            timeout=10
+        )
+        if response.status_code == 200:
+            data = response.json()
+            transactions = data.get("data", [])
+            if transactions:
+                latest = transactions[0]
+                return {
+                    "status": latest.get("status", "PENDING"),
+                    "plan": "",
+                    "payment_method": latest.get("payment_method_type", "")
+                }
+    except:
+        pass
+    return {"status": "PENDING", "plan": "", "payment_method": ""}
+
+@app.get("/api/admin/payments")
+async def list_payments(status: str = None, plan: str = None, admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    q = db.query(Payment, PlanSubscription, Lead).join(PlanSubscription, PlanSubscription.id == Payment.plan_subscription_id).join(Lead, Lead.id == Payment.lead_id)
+    if status:
+        q = q.filter(Payment.status == status)
+    if plan:
+        q = q.filter(PlanSubscription.plan_key == plan)
+        
+    q = q.order_by(Payment.created_at.desc()).limit(100)
+    res = []
+    for p, ps, l in q.all():
+        res.append({
+            "id": p.id,
+            "created_at": p.created_at,
+            "status": p.status,
+            "payment_method": p.payment_method,
+            "amount_usd": float(p.amount_usd),
+            "amount_cop": p.amount_cop,
+            "reference": p.reference,
+            "plan_nombre": ps.plan_nombre,
+            "plan_key": ps.plan_key,
+            "periodo": ps.periodo,
+            "nombre": l.name,
+            "email": l.email,
+            "pais": l.country
+        })
+    return res
+
+@app.get("/api/admin/payments/kpis")
+async def payment_kpis(admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    from sqlalchemy import func, extract
+    current_month = datetime.utcnow().month
+    current_year = datetime.utcnow().year
+    
+    total_ingresos = db.query(func.sum(Payment.amount_usd)).filter(Payment.status == 'APPROVED', extract('month', Payment.created_at) == current_month, extract('year', Payment.created_at) == current_year).scalar() or 0
+    pagos_aprobados = db.query(func.count(Payment.id)).filter(Payment.status == 'APPROVED', extract('month', Payment.created_at) == current_month, extract('year', Payment.created_at) == current_year).scalar() or 0
+    pagos_pendientes = db.query(func.count(Payment.id)).filter(Payment.status == 'PENDING').scalar() or 0
+    clientes_activos = db.query(func.count(PlanSubscription.id)).filter(PlanSubscription.status == 'active', PlanSubscription.expires_at > datetime.utcnow()).scalar() or 0
+    
+    return {
+        "total_ingresos_mes": float(total_ingresos),
+        "pagos_aprobados_mes": pagos_aprobados,
+        "pagos_pendientes": pagos_pendientes,
+        "clientes_activos": clientes_activos
+    }
+
+@app.post("/api/client/login")
+async def client_login(data: ClientLoginSchema, db: Session = Depends(get_db)):
+    acc = db.query(ClientAccess).filter(ClientAccess.username == data.email, ClientAccess.is_active == True).first()
+    if not acc:
+        return {"ok": False, "message": "Credenciales inválidas o cuenta inactiva"}
+    
+    if not bcrypt.checkpw(data.password.encode(), acc.password_hash.encode()):
+        return {"ok": False, "message": "Credenciales inválidas"}
+        
+    sub = db.query(PlanSubscription).filter(PlanSubscription.id == acc.plan_subscription_id).first()
+    if not sub or sub.status != 'active' or (sub.expires_at and sub.expires_at < datetime.utcnow()):
+        return {"ok": False, "message": "Tu plan ha expirado. Renueva para continuar."}
+        
+    acc.last_login = datetime.utcnow()
+    db.commit()
+    
+    # Check if create_jwt_token exists
+    try:
+        token = create_jwt_token({"lead_id": acc.lead_id, "role": "cliente"})
+    except:
+        # Fallback to create_access_token if create_jwt_token doesn't exist
+        token = create_access_token({"sub": acc.username, "lead_id": acc.lead_id, "role": "cliente"}, expires_delta=timedelta(days=7))
+    
+    lead = db.query(Lead).filter(Lead.id == acc.lead_id).first()
+    return {"ok": True, "token": token, "nombre": lead.name if lead else ""}
 
 # ============================================
 # MAIN
