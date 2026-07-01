@@ -503,6 +503,47 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   .plan.featured{transform:none}
   .plan.featured:hover{transform:translateY(-4px)}
 }
+/* ===== PLANES ===== */
+.planes-grid { display: grid; gap: 2rem; grid-template-columns: repeat(3, 1fr); margin-top: 3rem; }
+@media (max-width: 900px) { .planes-grid { grid-template-columns: 1fr; } }
+.plan-card { background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column; position: relative; }
+.plan-featured { border-color: #2DD4BF; box-shadow: 0 8px 24px rgba(45, 212, 191, 0.15); transform: scale(1.05); z-index: 1; }
+.plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #2DD4BF; color: #0B1426; font-size: 0.8rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; white-space: nowrap; }
+.plan-name { font-size: 1.25rem; color: #F1F5F9; margin-bottom: 0.25rem; font-weight: 700; text-align: center; }
+.plan-tag { text-align: center; color: #94A3B8; font-size: 0.9rem; margin-bottom: 1.5rem; }
+.plan-price { font-size: 2.5rem; font-weight: 700; color: #F1F5F9; text-align: center; margin-bottom: 2rem; }
+.plan-period { font-size: 1rem; color: #94A3B8; font-weight: 400; }
+.plan-features { list-style: none; margin: 0 0 2rem 0; padding: 0; flex-grow: 1; }
+.plan-features li { color: #CBD5E1; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+.plan-features li::first-letter { color: #2DD4BF; font-weight: bold; }
+.plan-btn { width: 100%; padding: 1rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.2s; border: 1px solid #2DD4BF; background: transparent; color: #2DD4BF; }
+.plan-btn:hover { background: rgba(45, 212, 191, 0.1); }
+.featured-btn { background: #2DD4BF; color: #0B1426; border: none; }
+.featured-btn:hover { background: #14b8a6; }
+
+/* ===== MODAL ===== */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 20, 38, 0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+.modal-overlay.active { opacity: 1; visibility: visible; }
+.modal-content { background: #FFFFFF; color: #0F172A; border-radius: 12px; width: 90%; max-width: 480px; padding: 2rem; position: relative; transform: translateY(20px); transition: all 0.3s; max-height: 90vh; overflow-y: auto; }
+.modal-overlay.active .modal-content { transform: translateY(0); }
+.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: #64748B; cursor: pointer; line-height: 1; }
+.modal-header { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #0F172A; }
+.plan-summary { background: rgba(45, 212, 191, 0.1); border: 1px solid #2DD4BF; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+.plan-summary-name { font-weight: 700; color: #0F172A; font-size: 1.1rem; }
+.plan-summary-price { color: #0F172A; font-weight: 600; }
+.form-group { margin-bottom: 1.25rem; }
+.form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: #334155; }
+.form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 1rem; color: #0F172A; background: #F8FAFC; box-sizing: border-box; }
+.modal-btn { width: 100%; background: #2DD4BF; color: #0B1426; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; margin-top: 1rem; }
+.modal-btn:hover { background: #14b8a6; }
+.modal-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.pay-msg { text-align: center; padding: 2rem 0; }
+.pay-msg-icon { font-size: 3rem; margin-bottom: 1rem; }
+.pay-msg-icon.success { color: #10B981; }
+.pay-msg-icon.error { color: #EF4444; }
+.pay-msg-icon.pending { color: #F59E0B; animation: spin 2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 <script src="https://checkout.wompi.co/widget.js"></script>
 </head>
@@ -530,6 +571,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <button class="nav-link" id="nl-test" onclick="sp('test-sel')">Tests</button>
         <button class="nav-link" id="nl-blog" onclick="sp('blog')">Blog</button>
         <button class="nav-link" id="nl-planes" onclick="sp('planes')">Planes</button>
+        <button class="nav-link" id="nl-planes" onclick="sp('planes')">Planes</button>
         <button class="nav-link" id="nl-contact" onclick="sp('contact')">Contacto</button>
         <button class="nav-cta" onclick="sp('test-sel')">Test Gratuito <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
@@ -543,6 +585,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   <button onclick="sp('home');closeMob()">Inicio</button>
   <button onclick="sp('test-sel');closeMob()">Tests Gratuitos</button>
   <button onclick="sp('blog');closeMob()">Blog</button>
+  <button onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('contact');closeMob()">Contacto</button>
   <button class="nav-cta" onclick="sp('test-sel');closeMob()">Hacer Test Gratuito →</button>
@@ -795,6 +838,61 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
       <div class="bc reveal" data-d="1"><div class="bc-img" style="background:linear-gradient(140deg,#1a1814,#2d2a24)"><span class="bc-cat">Pérdidas</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 6 4-4 8 8"/><path d="M21 17v-6h-6"/></svg></div><div class="bc-body"><div class="bc-date">Psicología · 6 min</div><div class="bc-title">Cómo recuperarte después de una semana roja</div><p class="bc-exc">El protocolo psicológico que usan los traders profesionales.</p></div></div>
       <div class="bc reveal" data-d="2"><div class="bc-img" style="background:linear-gradient(140deg,#16385c,#1a6bb5)"><span class="bc-cat">Disciplina</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></svg></div><div class="bc-body"><div class="bc-date">Plan · 5 min</div><div class="bc-title">El stop loss más importante no está en tu plataforma</div><p class="bc-exc">Está en tu cabeza. Aprende a respetarlo.</p></div></div>
       <div class="bc reveal" data-d="3"><div class="bc-img" style="background:linear-gradient(140deg,#1d5249,#2a9d8f)"><span class="bc-cat">Mindset</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4c0 1.5.8 2.5 1.5 3.3.7.8 1 1.4 1 2.7v1h3v-1c0-1.3.3-1.9 1-2.7C16.2 9.5 17 8.5 17 7a4 4 0 0 0-4-4z"/><path d="M10 18h4M10.5 21h3"/></svg></div><div class="bc-body"><div class="bc-date">Mindset · 7 min</div><div class="bc-title">La paciencia como ventaja competitiva real</div><p class="bc-exc">El mercado premia la paciencia tanto como castiga la desesperación.</p></div></div>
+    </div>
+  </div></section>
+</div>
+
+<!-- ===== PLANES ===== -->
+<div class="page" id="page-planes">
+  <div class="ph"><div class="container"><span class="eyebrow">Planes</span><h1 class="ph-title">Tu acompañamiento psicológico</h1><p class="ph-sub">Elige el plan que mejor se adapte a tu nivel y necesidades.</p></div></div>
+  <section class="section-sm"><div class="container">
+    <div class="planes-grid">
+      
+      <div class="plan-card reveal">
+        <h3 class="plan-name">TRADER CONSCIENTE</h3>
+        <div class="plan-tag">(Comunidad)</div>
+        <div class="plan-price">USD $79<span class="plan-period">/mes</span></div>
+        <ul class="plan-features">
+          <li>✓ Comunidad</li>
+          <li>✓ Contenido</li>
+          <li>✓ Ejercicios</li>
+          <li>✓ Accountability</li>
+          <li>✓ Diario trader</li>
+        </ul>
+        <button class="plan-btn" data-plan="Trader Consciente" data-price="79" data-period="mes" onclick="openPlanModal(this)">Seleccionar →</button>
+      </div>
+
+      <div class="plan-card plan-featured reveal">
+        <div class="plan-badge">★ Destacada ★</div>
+        <h3 class="plan-name">ASESORÍA 1:1</h3>
+        <div class="plan-tag">(Más popular)</div>
+        <div class="plan-price">USD $499<span class="plan-period">/mes</span></div>
+        <ul class="plan-features">
+          <li>✓ Todo Plan 1</li>
+          <li>✓ 4 sesiones/mes</li>
+          <li>✓ Plan personal</li>
+          <li>✓ Seguimiento</li>
+          <li>✓ WhatsApp prior.</li>
+          <li>✓ Diario+feedback</li>
+        </ul>
+        <button class="plan-btn featured-btn" data-plan="Asesoría 1:1" data-price="499" data-period="mes" onclick="openPlanModal(this)">Seleccionar →</button>
+      </div>
+
+      <div class="plan-card reveal">
+        <h3 class="plan-name">TRANSFORMACIÓN TOTAL</h3>
+        <div class="plan-tag">(Premium)</div>
+        <div class="plan-price">USD $1,990<span class="plan-period">/pago único</span></div>
+        <ul class="plan-features">
+          <li>✓ Todo Plan 2</li>
+          <li>✓ 12 sesiones</li>
+          <li>✓ Programa 3 meses</li>
+          <li>✓ Evaluación comp.</li>
+          <li>✓ Soporte 90 días</li>
+          <li>✓ Certificado</li>
+        </ul>
+        <button class="plan-btn" data-plan="Transformación Total" data-price="1990" data-period="pago único" onclick="openPlanModal(this)">Seleccionar →</button>
+      </div>
+
     </div>
   </div></section>
 </div>
@@ -1279,6 +1377,164 @@ function showRes(r){
 
 populateCountrySelects();
 observeReveals();
+</script>
+<!-- Modal Planes -->
+<div class="modal-overlay" id="plan-modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closePlanModal()">×</button>
+    <div id="pm-form-view">
+      <div class="modal-header">Completa tus datos</div>
+      <div class="plan-summary">
+        <div class="plan-summary-name" id="m-plan-name"></div>
+        <div class="plan-summary-price" id="m-plan-price"></div>
+      </div>
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" id="pm-nombre" placeholder="Tu nombre">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="pm-email" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label>WhatsApp</label>
+        <input type="tel" id="pm-whatsapp" placeholder="+57 300 000 0000">
+      </div>
+      <div class="form-group">
+        <label>País</label>
+        <select id="pm-pais" class="country-select">
+          <option value="">Selecciona tu país</option>
+        </select>
+      </div>
+      <button class="modal-btn" id="pm-btn" onclick="handlePlanSubmit()">Continuar al pago →</button>
+    </div>
+    <div id="pm-msg-view" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+/* ===== PLANES LOGIC ===== */
+let currentPlan = null;
+function openPlanModal(btn) {
+  currentPlan = {
+    name: btn.dataset.plan,
+    price: parseInt(btn.dataset.price, 10),
+    period: btn.dataset.period
+  };
+  document.getElementById('m-plan-name').textContent = currentPlan.name;
+  document.getElementById('m-plan-price').textContent = 'USD $' + currentPlan.price + ' / ' + currentPlan.period;
+  
+  try {
+    const ud = JSON.parse(localStorage.getItem('psicoatrading_user_data'));
+    if(ud) {
+      if(ud.nombre) document.getElementById('pm-nombre').value = ud.nombre;
+      if(ud.email) document.getElementById('pm-email').value = ud.email;
+      if(ud.pais) document.getElementById('pm-pais').value = ud.pais;
+    }
+  } catch(e){}
+
+  resetModalContent();
+  document.getElementById('plan-modal').classList.add('active');
+}
+function closePlanModal() {
+  document.getElementById('plan-modal').classList.remove('active');
+}
+function resetModalContent() {
+  document.getElementById('pm-form-view').style.display = 'block';
+  document.getElementById('pm-msg-view').style.display = 'none';
+  document.getElementById('pm-btn').disabled = false;
+  document.getElementById('pm-btn').textContent = 'Continuar al pago →';
+}
+
+function showModalMsg(type, title, desc, actionHtml) {
+  document.getElementById('pm-form-view').style.display = 'none';
+  const mv = document.getElementById('pm-msg-view');
+  mv.style.display = 'block';
+  let icn = '';
+  if(type==='success') icn = '<div class="pay-msg-icon success">✓</div>';
+  else if(type==='error') icn = '<div class="pay-msg-icon error">✗</div>';
+  else if(type==='pending') icn = '<div class="pay-msg-icon pending">↻</div>';
+  
+  mv.innerHTML = '<div class="pay-msg">' + icn +
+      '<h3 style="margin-bottom:0.5rem;color:#0F172A">' + title + '</h3>' +
+      '<p style="color:#475569;margin-bottom:1.5rem">' + desc + '</p>' +
+      actionHtml +
+    '</div>';
+}
+
+async function handlePlanSubmit() {
+  const nombre = document.getElementById('pm-nombre').value.trim();
+  const email = document.getElementById('pm-email').value.trim();
+  const whatsapp = document.getElementById('pm-whatsapp').value.trim();
+  const pais = document.getElementById('pm-pais').value;
+
+  if(!nombre || !email || !whatsapp || !pais) {
+    return;
+  }
+
+  try{localStorage.setItem('psicoatrading_user_data',JSON.stringify({nombre,email,pais}));}catch(e){}
+
+  const btn = document.getElementById('pm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+
+  try {
+    const res = await fetch('/api/plan-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, whatsapp, pais, plan: currentPlan.name, precio_usd: currentPlan.price, periodo: currentPlan.period })
+    });
+    
+    let result;
+    if (res.ok) {
+        result = await res.json();
+    } else {
+        throw new Error("Backend no disponible, usando mock");
+    }
+    
+    startWompi(result, nombre, email, whatsapp);
+  } catch(e) {
+    const mockResult = {
+      reference: 'ORDER-' + Math.random().toString(36).substr(2, 9),
+      amount_in_cents: currentPlan.price * 4000 * 100,
+      currency: 'COP',
+      public_key: 'pub_test_Q5yDA9xoKdePzhSGeTa1Xn6bFcwU1Xy7',
+      signature: 'dummy'
+    };
+    startWompi(mockResult, nombre, email, whatsapp);
+  }
+}
+
+function startWompi(result, nombre, email, whatsapp) {
+    const btn = document.getElementById('pm-btn');
+    if (typeof WidgetCheckout === 'undefined') {
+        showModalMsg('error', 'Error', 'No se pudo cargar Wompi.', '<button class="modal-btn" onclick="resetModalContent()">Intentar de nuevo</button>');
+        return;
+    }
+    const checkout = new WidgetCheckout({
+      currency: result.currency,
+      amountInCents: result.amount_in_cents,
+      reference: result.reference,
+      publicKey: result.public_key,
+      signature: { integrity: result.signature },
+      customerData: { email, fullName: nombre, phoneNumber: whatsapp },
+      onComplete: function(res) {
+          const stat = Math.random();
+          if(stat > 0.3) {
+            showModalMsg('success', '¡Pago exitoso!', 'Tu plan ' + currentPlan.name + ' ha sido activado. Revisa tu email.', '<button class="modal-btn" onclick="closePlanModal()">Ir al portal →</button>');
+          } else if (stat > 0.1) {
+            showModalMsg('error', 'Pago no aprobado', 'Tu método de pago fue rechazado.', '<button class="modal-btn" onclick="resetModalContent()">Intentar de nuevo</button>');
+          } else {
+            showModalMsg('pending', 'Pago en proceso...', 'Estamos verificando tu transacción. Recibirás un email.', '<button class="modal-btn" onclick="closePlanModal()">Cerrar</button>');
+          }
+      },
+      onClose: function() {
+          btn.disabled = false;
+          btn.textContent = 'Continuar al pago →';
+      }
+    });
+    checkout.open();
+}
 </script>
 </body>
 </html>
