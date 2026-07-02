@@ -571,7 +571,6 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <button class="nav-link" id="nl-test" onclick="sp('test-sel')">Tests</button>
         <button class="nav-link" id="nl-blog" onclick="sp('blog')">Blog</button>
         <button class="nav-link" id="nl-planes" onclick="sp('planes')">Planes</button>
-        <button class="nav-link" id="nl-planes" onclick="sp('planes')">Planes</button>
         <button class="nav-link" id="nl-contact" onclick="sp('contact')">Contacto</button>
         <button class="nav-cta" onclick="sp('test-sel')">Test Gratuito <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
@@ -585,7 +584,6 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   <button onclick="sp('home');closeMob()">Inicio</button>
   <button onclick="sp('test-sel');closeMob()">Tests Gratuitos</button>
   <button onclick="sp('blog');closeMob()">Blog</button>
-  <button onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('contact');closeMob()">Contacto</button>
   <button class="nav-cta" onclick="sp('test-sel');closeMob()">Hacer Test Gratuito →</button>
@@ -917,7 +915,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
         <div class="fg"><label class="fl">Email</label><input class="fi" id="contact-email" type="email" placeholder="tu@email.com"></div>
         <div class="fg"><label class="fl">País</label><select class="fi country-select" id="contact-pais"><option value="">Selecciona tu país</option></select></div>
         <div class="fg"><label class="fl">Experiencia en trading</label><select class="fi" id="contact-experiencia"><option value="">Selecciona...</option><option>Menos de 6 meses</option><option>6 meses - 1 año</option><option>1 - 3 años</option><option>Más de 3 años</option></select></div>
-        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
+        <div class="fg"><label class="fl">¿Cuál es tu principal desafío?</label><textarea class="fi fta" id="contact-desafio" placeholder="Describe brevemente lo que te está costando más en tu trading..."></textarea></div>
         <button class="fsub" onclick="submitContact(this)">Enviar solicitud <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
     </div>
@@ -1046,16 +1044,42 @@ function populateCountrySelects(){
     const cur=sel.value; sel.innerHTML=countryOptionsHTML(); if(cur){sel.value=cur;}
   });
 }
-function submitContact(btn){
+async function submitContact(btn){
   const card=document.querySelector('.cont-form-card');
   if(!card)return;
-  card.innerHTML='<div class="cont-success">'
-    +'<div class="cs-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>'
-    +'<h3>¡Solicitud enviada!</h3>'
-    +'<p>Recibimos tu mensaje. Un psicólogo especializado<br>te contactará en menos de <strong>24 horas</strong>.</p>'
-    +'<p class="cs-redir">Redirigiendo al inicio…</p>'
-    +'</div>';
-  setTimeout(()=>{sp('home');window.scrollTo({top:0,behavior:'smooth'});},4000);
+  const nombre=document.getElementById('contact-nombre').value.trim();
+  const email=document.getElementById('contact-email').value.trim();
+  const pais=document.getElementById('contact-pais').value;
+  const experiencia=document.getElementById('contact-experiencia').value;
+  const desafio=(document.getElementById('contact-desafio')||{value:''}).value.trim();
+  if(!nombre||!email||!/.+@.+\..+/.test(email)){
+    let e=document.getElementById('contactErr');
+    if(!e){e=document.createElement('div');e.id='contactErr';e.className='cont-error';btn.insertAdjacentElement('afterend',e);}
+    e.textContent='Ingresa tu nombre y un email válido para continuar.';
+    setTimeout(()=>{if(e)e.remove();},4000);
+    return;
+  }
+  btn.disabled=true;btn.style.opacity='.7';
+  try{
+    const r=await fetch('https://psicoatrading.online/api/forms/contact',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:nombre,email:email,pais:pais||null,experiencia_trading:experiencia||null,principal_desafio:desafio||null,intent:'contacto'})
+    });
+    if(!r.ok)throw new Error('backend');
+    card.innerHTML='<div class="cont-success">'
+      +'<div class="cs-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>'
+      +'<h3>¡Solicitud enviada!</h3>'
+      +'<p>Recibimos tu mensaje. Un psicólogo especializado<br>te contactará en menos de <strong>24 horas</strong>.</p>'
+      +'<p class="cs-redir">Redirigiendo al inicio…</p>'
+      +'</div>';
+    setTimeout(()=>{sp('home');window.scrollTo({top:0,behavior:'smooth'});},4000);
+  }catch(err){
+    btn.disabled=false;btn.style.opacity='';
+    let e=document.getElementById('contactErr');
+    if(!e){e=document.createElement('div');e.id='contactErr';e.className='cont-error';btn.insertAdjacentElement('afterend',e);}
+    e.textContent='No se pudo enviar tu solicitud. Intenta de nuevo en unos segundos.';
+    setTimeout(()=>{if(e)e.remove();},5000);
+  }
 }
 function prefillContact(){
   populateCountrySelects();
@@ -1340,7 +1364,27 @@ function calcRes(){
   const profs=t.id==='A'?pA:pB,maxSc=t.id==='A'?105:98,sc=Math.round(tot/maxT*maxSc);
   let prof=profs[profs.length-1];for(const p of profs){if(sc>=p.rng[0]&&sc<=p.rng[1]){prof=p;break;}}
   ST.notesPayload=t.questions.map((q,i)=>({pregunta:i+1,dim:q.dim,nota:ST.notes[i]||null})).filter(n=>n.nota!==null);
-  showRes({tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})});sp('results');
+  const res={tid:t.id,tn:t.name,ud:ST.ud,ds,tot,maxT,pct,sc,maxSc,prof,notas:ST.notesPayload,date:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})};
+  showRes(res);sp('results');
+  saveTestResult(res);
+}
+function saveTestResult(r){
+  const t=r.tid==='A'?tA:tB;
+  const dimensions=Object.keys(t.dims).map(k=>{
+    const d=t.dims[k],score=r.ds[k]||0,max=d.m,pct2=Math.round(score/max*100);
+    return {name:d.n,code:k,score:score,max_score:max,percentage:pct2};
+  });
+  const respuestas={};Object.keys(ST.ans).forEach(i=>respuestas[i]=ST.ans[i]);
+  const payload={
+    name:r.ud.name,email:r.ud.email,pais:r.ud.country,
+    experiencia_trading:r.ud.exp,main_market:r.ud.mkt,
+    test_type:r.tid,score:r.sc,perfil:r.prof.name,
+    respuestas:respuestas,dimensions:dimensions,notas:r.notas||[]
+  };
+  const endpoint=r.tid==='A'?'/api/forms/test-a':'/api/forms/test-b';
+  fetch('https://psicoatrading.online'+endpoint,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  }).catch(err=>console.error('No se pudo guardar el resultado del test:',err));
 }
 function showRes(r){
   const t=r.tid==='A'?tA:tB,p=r.prof;

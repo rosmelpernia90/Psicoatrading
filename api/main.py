@@ -121,6 +121,9 @@ class TestResult(Base):
     profile_code = Column(String(50), nullable=False)
     total_score = Column(DECIMAL(5, 2))
     answers_json = Column(JSON)
+    perfil = Column(String(200), nullable=True)
+    dimensiones = Column(JSON, nullable=True)
+    desafio_principal = Column(String(100), nullable=True)
     completed_at = Column(DateTime, default=datetime.utcnow)
     dimensions = relationship("DimensionScore", backref="test_result")
 
