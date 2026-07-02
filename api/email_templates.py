@@ -96,10 +96,10 @@ def template_test_email_1_bienvenida(nombre: str, test_tipo: str, perfil: str, d
 
     test_nombre = "Perfil Psicológico del Trader" if test_tipo == "A" else "Auditoría de Plan de Trading"
 
-    # Construir resumen de dimensiones
+    # Construir resumen de dimensiones (los valores llegan como porcentaje 0-100)
     dimensiones_html = ""
     for dimension, puntaje in dimensiones.items():
-        porcentaje = min(int((puntaje / 7) * 100), 100)
+        porcentaje = min(int(round(float(puntaje))), 100)
         color = "#22C55E" if porcentaje >= 70 else "#F59E0B" if porcentaje >= 40 else "#EF4444"
         dimensiones_html += f"""
             <div style="margin-bottom:12px;">

@@ -915,11 +915,16 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         min_dim = min(data.dimensions, key=lambda d: float(d.get("score", 0)))
         desafio_principal = min_dim.get("code", "")
 
-    # Convertir dimensiones a dict {nombre: puntaje}
+    # Convertir dimensiones a dicts: crudo (BD) y porcentaje (email)
     dimensiones_dict = {}
+    dimensiones_pct = {}
     if data.dimensions:
         for d in data.dimensions:
-            dimensiones_dict[d.get("name", d.get("code", ""))] = float(d.get("score", 0))
+            nombre_dim = d.get("name", d.get("code", ""))
+            sc_d = float(d.get("score", 0))
+            mx_d = float(d.get("max_score", d.get("max", 100)) or 100)
+            dimensiones_dict[nombre_dim] = sc_d
+            dimensiones_pct[nombre_dim] = float(d.get("percentage") or (round(sc_d / mx_d * 100, 1) if mx_d else 0))
 
     test_result = TestResult(
         lead_id=lead.id,
@@ -982,7 +987,7 @@ def submit_test_result(data: TestResultSubmit, db: Session = Depends(get_db)):
         nombre=lead.name,
         test_tipo=data.test_type,
         perfil=data.profile_name,
-        dimensiones=dimensiones_dict
+        dimensiones=dimensiones_pct
     )
     email_service.send_email(
         to_email=lead.email,
@@ -1158,14 +1163,19 @@ def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, sourc
     if lead.funnel_stage in (None, "nuevo"):
         lead.funnel_stage = "test_completed"
 
-    # Calcular desafio principal (dimension con puntaje mas bajo) y dict de dimensiones
+    # Calcular desafio principal (dimension con puntaje mas bajo) y dicts de dimensiones
     desafio_principal = None
-    dimensiones_dict = {}
+    dimensiones_dict = {}   # nombre -> puntaje crudo (se guarda en BD)
+    dimensiones_pct = {}    # nombre -> porcentaje 0-100 (para el email de bienvenida)
     if data.dimensions:
         min_dim = min(data.dimensions, key=lambda d: float(d.get("score", 0)))
         desafio_principal = min_dim.get("code", min_dim.get("dimension_code", ""))
         for d in data.dimensions:
-            dimensiones_dict[d.get("name", d.get("dimension_code", ""))] = float(d.get("score", 0))
+            nombre_dim = d.get("name", d.get("dimension_code", ""))
+            sc_d = float(d.get("score", 0))
+            mx_d = float(d.get("max_score", d.get("max", 100)) or 100)
+            dimensiones_dict[nombre_dim] = sc_d
+            dimensiones_pct[nombre_dim] = float(d.get("percentage") or (round(sc_d / mx_d * 100, 1) if mx_d else 0))
 
     # Tambien creamos el TestResult clasico (mantiene compatibilidad con el panel actual)
     test_result = TestResult(
@@ -1213,7 +1223,7 @@ def _submit_test(db: Session, data: FormTestSubmit, *, expected_type: str, sourc
     db.commit()
 
     # Disparar secuencia de emails (Email 1 inmediato + 4 programados en cola)
-    schedule_email_sequence(db, lead, expected_type, data.perfil, dimensiones_dict)
+    schedule_email_sequence(db, lead, expected_type, data.perfil, dimensiones_pct)
 
     return {"success": True, "lead_id": lead.id, "submission_id": sub.id,
             "test_result_id": test_result.id,
