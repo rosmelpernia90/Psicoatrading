@@ -470,9 +470,10 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 .plans-note svg{width:15px;height:15px;vertical-align:-3px;margin-right:5px;color:var(--brand3)}
 
 /* ---- Modal de pago ---- */
-.pay-overlay{position:fixed;inset:0;background:rgba(6,12,24,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding:5vh 1.2rem;overflow-y:auto}
+.pay-overlay{position:fixed;inset:0;background:rgba(6,12,24,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2000;display:none;align-items:center;justify-content:center;padding:2.5vh 1rem;overflow-y:auto}
 .pay-overlay.open{display:flex}
-.pay-modal{background:var(--white);border-radius:18px;max-width:460px;width:100%;box-shadow:0 30px 90px rgba(0,0,0,.5);animation:payIn .35s var(--ease);overflow:hidden;margin:auto}
+.pay-modal{background:var(--white);border-radius:18px;width:min(94vw,500px);max-height:94vh;overflow-y:auto;box-shadow:0 30px 90px rgba(0,0,0,.5);animation:payIn .35s var(--ease);margin:auto}
+@media(max-width:520px){.pay-modal{width:100%;border-radius:14px}.pay-body{padding:1.2rem 1.2rem 1.4rem}}
 @keyframes payIn{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:none}}
 .pay-head{display:flex;align-items:center;justify-content:space-between;padding:1.4rem 1.6rem 1.1rem;border-bottom:1px solid var(--border)}
 .pay-head h3{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--ink)}
