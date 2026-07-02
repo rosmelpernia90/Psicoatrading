@@ -9,6 +9,7 @@ import re
 import secrets
 import hashlib
 import uuid
+import logging
 import requests
 import bcrypt
 from datetime import datetime, timedelta, date as date_type
@@ -29,6 +30,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("psicoatrading")
 
 # Email service (SMTP Hostinger)
 from email_service import email_service
@@ -2652,8 +2656,16 @@ def diary_psychologist_view(client_id: int, payload: dict = Depends(require_psyc
 
 PLANES_CONFIG = {
     "trader_consciente": {"nombre": "Trader Consciente", "precio_usd": 79, "periodo": "mensual"},
-    "asesoria_1a1": {"nombre": "Asesoría 1:1", "precio_usd": 499, "periodo": "mensual"},
+    "asesoria_1a1": {"nombre": "Asesoría Personalizada", "precio_usd": 399, "periodo": "mensual"},
     "transformacion_total": {"nombre": "Transformación Total", "precio_usd": 1990, "periodo": "unico"},
+}
+
+# Mapa nombre visible -> plan_key (los botones del sitio envían el nombre)
+PLAN_NAME_TO_KEY = {
+    "Trader Consciente": "trader_consciente",
+    "Asesoría 1:1": "asesoria_1a1",
+    "Asesoría Personalizada": "asesoria_1a1",
+    "Transformación Total": "transformacion_total",
 }
 
 def get_current_trm() -> float:
@@ -2669,7 +2681,8 @@ def get_current_trm() -> float:
 
 @app.post("/api/plan-register")
 async def plan_register(data: PlanRegisterSchema, db: Session = Depends(get_db)):
-    plan_config = PLANES_CONFIG.get(data.plan)
+    plan_key = data.plan if data.plan in PLANES_CONFIG else PLAN_NAME_TO_KEY.get(data.plan)
+    plan_config = PLANES_CONFIG.get(plan_key) if plan_key else None
     if not plan_config:
         return {"ok": False, "message": "Plan no válido"}
     
@@ -2681,7 +2694,7 @@ async def plan_register(data: PlanRegisterSchema, db: Session = Depends(get_db))
             phone=data.whatsapp,
             whatsapp=data.whatsapp,
             country=data.pais,
-            source=f"plan_{data.plan}",
+            source=f"plan_{plan_key}",
             funnel_stage="prospect"
         )
         db.add(lead)
@@ -2692,13 +2705,13 @@ async def plan_register(data: PlanRegisterSchema, db: Session = Depends(get_db))
         lead.phone = data.whatsapp
         lead.whatsapp = data.whatsapp
         lead.country = data.pais
-        lead.source = f"plan_{data.plan}"
+        lead.source = f"plan_{plan_key}"
         db.commit()
         db.refresh(lead)
-        
+
     lead_id = lead.id
-    
-    reference = f"PST-{data.plan[:4].upper()}-{uuid.uuid4().hex[:8].upper()}"
+
+    reference = f"PST-{plan_key[:4].upper()}-{uuid.uuid4().hex[:8].upper()}"
     
     trm = get_current_trm()
     amount_cop = int(plan_config["precio_usd"] * trm)
@@ -2706,7 +2719,7 @@ async def plan_register(data: PlanRegisterSchema, db: Session = Depends(get_db))
     
     sub = PlanSubscription(
         lead_id=lead_id,
-        plan_key=data.plan,
+        plan_key=plan_key,
         plan_nombre=plan_config["nombre"],
         precio_usd=plan_config["precio_usd"],
         periodo=plan_config["periodo"],
@@ -2845,7 +2858,7 @@ async def wompi_webhook(request: Request, db: Session = Depends(get_db)):
         
         lead = db.query(Lead).filter(Lead.id == sub.lead_id).first()
         if lead:
-            lead.funnel_stage = 'vip_client'
+            lead.funnel_stage = 'client'
             
         temp_pass = create_client_access(sub.lead_id, sub.id, db)
         
@@ -2853,14 +2866,12 @@ async def wompi_webhook(request: Request, db: Session = Depends(get_db)):
             email_conf = template_pago_confirmacion(lead.name, sub.plan_nombre, float(sub.precio_usd), lead.email, temp_pass)
             email_service.send_email(
                 to_email=lead.email,
-                to_name=lead.name,
                 subject=email_conf["subject"],
                 html_body=email_conf["html"]
             )
-            email_admin = template_pago_notificacion_admin(lead.name, lead.email, sub.plan_nombre, float(sub.precio_usd), lead.country, reference)
+            email_admin = template_pago_notificacion_admin(lead.name, lead.email, sub.plan_nombre, float(sub.precio_usd), lead.country or "", reference)
             email_service.send_email(
                 to_email=os.getenv("ADMIN_EMAIL", "admin@psicoatrading.online"),
-                to_name="Admin",
                 subject=email_admin["subject"],
                 html_body=email_admin["html"]
             )
@@ -2917,6 +2928,7 @@ async def list_payments(status: str = None, plan: str = None, payload: dict = De
     for p, ps, l in q.all():
         res.append({
             "id": p.id,
+            "lead_id": p.lead_id,
             "created_at": p.created_at,
             "status": p.status,
             "payment_method": p.payment_method,
@@ -2965,14 +2977,9 @@ async def client_login(data: ClientLoginSchema, db: Session = Depends(get_db)):
         
     acc.last_login = datetime.utcnow()
     db.commit()
-    
-    # Check if create_jwt_token exists
-    try:
-        token = create_jwt_token({"lead_id": acc.lead_id, "role": "cliente"})
-    except:
-        # Fallback to create_access_token if create_jwt_token doesn't exist
-        token = create_access_token({"sub": acc.username, "lead_id": acc.lead_id, "role": "cliente"}, expires_delta=timedelta(days=7))
-    
+
+    token = create_token({"sub": acc.username, "lead_id": acc.lead_id, "role": "cliente"})
+
     lead = db.query(Lead).filter(Lead.id == acc.lead_id).first()
     return {"ok": True, "token": token, "nombre": lead.name if lead else ""}
 

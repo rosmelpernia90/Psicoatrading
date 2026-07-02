@@ -487,6 +487,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
       <button class="sb-item" id="nav-leads" data-view="leads" onclick="showView('leads')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Leads</span></button>
       <button class="sb-item" id="nav-tests" data-view="tests" onclick="showView('tests')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span>Resultados de Tests</span></button>
       <button class="sb-item" id="nav-emails" data-view="emails" onclick="showView('emails')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><span>Emails</span></button>
+      <button class="sb-item" id="nav-pagos" data-view="pagos" onclick="showView('pagos')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span><span>Pagos</span></button>
       <button class="sb-item" id="nav-sessions" data-view="sessions" onclick="showView('sessions')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg></span><span>Sesiones</span></button>
       <button class="sb-item" id="nav-progress" data-view="progress" onclick="showView('progress')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span>Progreso del cliente</span></button>
       <button class="sb-item" id="nav-diary-psych" data-view="diary-psych" onclick="showView('diary-psych')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span><span>Diario clínico</span></button>
@@ -621,6 +622,38 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
           <table>
             <thead><tr><th>Lead</th><th>Paso</th><th>Asunto</th><th>Estado</th><th>Programado</th><th>Enviado</th></tr></thead>
             <tbody id="emails-tbody"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGOS (solo admin) -->
+    <div class="view-panel" id="view-pagos">
+      <h1 style="margin-bottom:.4rem">Pagos</h1>
+      <p style="color:var(--text-muted);font-size:.92rem;margin-bottom:1.25rem">Transacciones procesadas por Wompi y estado de las suscripciones.</p>
+      <div class="kpi-grid" id="pagos-kpis"><div class="loading">Cargando KPIs...</div></div>
+      <div class="leads-filters">
+        <select class="form-input" id="pf-status" onchange="loadPagos()">
+          <option value="">Estado — todos</option>
+          <option value="APPROVED">Aprobados</option>
+          <option value="PENDING">Pendientes</option>
+          <option value="DECLINED">Rechazados</option>
+          <option value="ERROR">Error</option>
+          <option value="VOIDED">Anulados</option>
+        </select>
+        <select class="form-input" id="pf-plan" onchange="loadPagos()">
+          <option value="">Plan — todos</option>
+          <option value="trader_consciente">Trader Consciente</option>
+          <option value="asesoria_1a1">Asesoría Personalizada</option>
+          <option value="transformacion_total">Transformación Total</option>
+        </select>
+        <button class="btn-secondary btn-sm" onclick="clearPagosFilters()" style="white-space:nowrap">Limpiar</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th>Monto USD</th><th>Monto COP</th><th>Estado</th><th>Método</th><th>Referencia</th></tr></thead>
+            <tbody id="pagos-tbody"><tr><td colspan="8" class="loading">Cargando pagos...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1209,7 +1242,7 @@ function enterApp() {
 let viewAsRole = null;  // null = admin real; 'psychologist'/'cliente' = preview
 
 // Items que SOLO ve el admin (no el psicólogo)
-const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-tests', 'nav-emails', 'nav-users', 'nav-psicologos', 'nav-asignaciones', 'nav-solicitudes'];
+const ADMIN_ONLY_NAV = ['nav-dashboard', 'nav-tests', 'nav-emails', 'nav-pagos', 'nav-users', 'nav-psicologos', 'nav-asignaciones', 'nav-solicitudes'];
 
 function applyClinicalRole(effectiveRole) {
   // effectiveRole: 'admin' o 'psychologist'
@@ -1279,6 +1312,7 @@ function showView(name) {
   if (name === 'leads') loadLeads();
   if (name === 'tests') loadTests();
   if (name === 'emails') loadEmails();
+  if (name === 'pagos') loadPagos();
   if (name === 'users') loadUsers();
   if (name === 'progress') loadCourseProgress();
   if (name === 'diary-psych') initPsychDiary();
@@ -1790,6 +1824,58 @@ async function loadEmails() {
     <td style="color:var(--ink3)">${e.scheduled_at ? new Date(e.scheduled_at).toLocaleDateString('es-CO') : '—'}</td>
     <td style="color:var(--ink3)">${e.sent_at ? new Date(e.sent_at).toLocaleDateString('es-CO') : '—'}</td>
   </tr>`).join('');
+}
+
+// ============================================================
+// PAGOS (admin)
+// ============================================================
+async function loadPagos() {
+  const status = document.getElementById('pf-status').value;
+  const plan = document.getElementById('pf-plan').value;
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (plan) params.set('plan', plan);
+  const qs = params.toString() ? '?' + params.toString() : '';
+
+  const [kpis, rows] = await Promise.all([
+    api('/api/admin/payments/kpis'),
+    api('/api/admin/payments' + qs)
+  ]);
+
+  const kpiEl = document.getElementById('pagos-kpis');
+  if (kpis) {
+    kpiEl.innerHTML = `
+      <div class="kpi"><div class="kpi-label">Ingresos del mes</div><div class="kpi-value gold">USD $${Number(kpis.total_ingresos_mes).toLocaleString('en-US')}</div><div class="kpi-sub">pagos aprobados</div></div>
+      <div class="kpi"><div class="kpi-label">Pagos aprobados</div><div class="kpi-value good">${kpis.pagos_aprobados_mes}</div><div class="kpi-sub">este mes</div></div>
+      <div class="kpi"><div class="kpi-label">Pagos pendientes</div><div class="kpi-value warning">${kpis.pagos_pendientes}</div><div class="kpi-sub">por confirmar</div></div>
+      <div class="kpi"><div class="kpi-label">Clientes activos</div><div class="kpi-value">${kpis.clientes_activos}</div><div class="kpi-sub">plan vigente</div></div>`;
+  } else {
+    kpiEl.innerHTML = '<div class="loading">No se pudieron cargar los KPIs</div>';
+  }
+
+  const tbody = document.getElementById('pagos-tbody');
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem">No hay pagos registrados aún.</td></tr>';
+    return;
+  }
+  const statusPill = { APPROVED: 'pill-success', PENDING: 'pill-warning', DECLINED: 'pill-danger', ERROR: 'pill-danger', VOIDED: 'pill-info' };
+  const statusLabel = { APPROVED: 'Aprobado', PENDING: 'Pendiente', DECLINED: 'Rechazado', ERROR: 'Error', VOIDED: 'Anulado' };
+  tbody.innerHTML = rows.map(p => `<tr>
+    <td class="td-muted">${p.created_at ? new Date(p.created_at).toLocaleString('es-CO', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—'}</td>
+    <td class="td-name" onclick="openLead(${p.lead_id ?? 'null'})">${p.nombre || '—'}<div class="td-muted" style="font-size:.78rem">${p.email || ''}</div></td>
+    <td>${p.plan_nombre || '—'}</td>
+    <td><span class="mono">$${Number(p.amount_usd).toLocaleString('en-US')}</span></td>
+    <td class="td-muted"><span class="mono">$${Number((p.amount_cop || 0) / 100).toLocaleString('es-CO')}</span></td>
+    <td><span class="pill ${statusPill[p.status] || 'pill-info'}">${statusLabel[p.status] || p.status}</span></td>
+    <td class="td-muted">${p.payment_method || '—'}</td>
+    <td class="td-muted"><span class="mono" style="font-size:.75rem">${p.reference || '—'}</span></td>
+  </tr>`).join('');
+}
+
+function clearPagosFilters() {
+  document.getElementById('pf-status').value = '';
+  document.getElementById('pf-plan').value = '';
+  loadPagos();
 }
 
 // ============================================================

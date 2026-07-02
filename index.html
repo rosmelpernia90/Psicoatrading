@@ -859,14 +859,14 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
           <li>✓ Accountability</li>
           <li>✓ Diario trader</li>
         </ul>
-        <button class="plan-btn" data-plan="Trader Consciente" data-price="79" data-period="mes" onclick="openPlanModal(this)">Seleccionar →</button>
+        <button class="plan-btn" data-plan="Trader Consciente" data-price="79" data-period="mes" onclick="openPay(this)">Seleccionar →</button>
       </div>
 
       <div class="plan-card plan-featured reveal">
         <div class="plan-badge">★ Destacada ★</div>
-        <h3 class="plan-name">ASESORÍA 1:1</h3>
+        <h3 class="plan-name">ASESORÍA PERSONALIZADA</h3>
         <div class="plan-tag">(Más popular)</div>
-        <div class="plan-price">USD $499<span class="plan-period">/mes</span></div>
+        <div class="plan-price">USD $399<span class="plan-period">/mes</span></div>
         <ul class="plan-features">
           <li>✓ Todo Plan 1</li>
           <li>✓ 4 sesiones/mes</li>
@@ -875,7 +875,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
           <li>✓ WhatsApp prior.</li>
           <li>✓ Diario+feedback</li>
         </ul>
-        <button class="plan-btn featured-btn" data-plan="Asesoría 1:1" data-price="499" data-period="mes" onclick="openPlanModal(this)">Seleccionar →</button>
+        <button class="plan-btn featured-btn" data-plan="Asesoría Personalizada" data-price="399" data-period="mes" onclick="openPay(this)">Seleccionar →</button>
       </div>
 
       <div class="plan-card reveal">
@@ -890,7 +890,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
           <li>✓ Soporte 90 días</li>
           <li>✓ Certificado</li>
         </ul>
-        <button class="plan-btn" data-plan="Transformación Total" data-price="1990" data-period="pago único" onclick="openPlanModal(this)">Seleccionar →</button>
+        <button class="plan-btn" data-plan="Transformación Total" data-price="1990" data-period="pago único" onclick="openPay(this)">Seleccionar →</button>
       </div>
 
     </div>
@@ -1377,164 +1377,6 @@ function showRes(r){
 
 populateCountrySelects();
 observeReveals();
-</script>
-<!-- Modal Planes -->
-<div class="modal-overlay" id="plan-modal">
-  <div class="modal-content">
-    <button class="modal-close" onclick="closePlanModal()">×</button>
-    <div id="pm-form-view">
-      <div class="modal-header">Completa tus datos</div>
-      <div class="plan-summary">
-        <div class="plan-summary-name" id="m-plan-name"></div>
-        <div class="plan-summary-price" id="m-plan-price"></div>
-      </div>
-      <div class="form-group">
-        <label>Nombre completo</label>
-        <input type="text" id="pm-nombre" placeholder="Tu nombre">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="pm-email" placeholder="tu@email.com">
-      </div>
-      <div class="form-group">
-        <label>WhatsApp</label>
-        <input type="tel" id="pm-whatsapp" placeholder="+57 300 000 0000">
-      </div>
-      <div class="form-group">
-        <label>País</label>
-        <select id="pm-pais" class="country-select">
-          <option value="">Selecciona tu país</option>
-        </select>
-      </div>
-      <button class="modal-btn" id="pm-btn" onclick="handlePlanSubmit()">Continuar al pago →</button>
-    </div>
-    <div id="pm-msg-view" style="display:none;"></div>
-  </div>
-</div>
-
-<script>
-/* ===== PLANES LOGIC ===== */
-let currentPlan = null;
-function openPlanModal(btn) {
-  currentPlan = {
-    name: btn.dataset.plan,
-    price: parseInt(btn.dataset.price, 10),
-    period: btn.dataset.period
-  };
-  document.getElementById('m-plan-name').textContent = currentPlan.name;
-  document.getElementById('m-plan-price').textContent = 'USD $' + currentPlan.price + ' / ' + currentPlan.period;
-  
-  try {
-    const ud = JSON.parse(localStorage.getItem('psicoatrading_user_data'));
-    if(ud) {
-      if(ud.nombre) document.getElementById('pm-nombre').value = ud.nombre;
-      if(ud.email) document.getElementById('pm-email').value = ud.email;
-      if(ud.pais) document.getElementById('pm-pais').value = ud.pais;
-    }
-  } catch(e){}
-
-  resetModalContent();
-  document.getElementById('plan-modal').classList.add('active');
-}
-function closePlanModal() {
-  document.getElementById('plan-modal').classList.remove('active');
-}
-function resetModalContent() {
-  document.getElementById('pm-form-view').style.display = 'block';
-  document.getElementById('pm-msg-view').style.display = 'none';
-  document.getElementById('pm-btn').disabled = false;
-  document.getElementById('pm-btn').textContent = 'Continuar al pago →';
-}
-
-function showModalMsg(type, title, desc, actionHtml) {
-  document.getElementById('pm-form-view').style.display = 'none';
-  const mv = document.getElementById('pm-msg-view');
-  mv.style.display = 'block';
-  let icn = '';
-  if(type==='success') icn = '<div class="pay-msg-icon success">✓</div>';
-  else if(type==='error') icn = '<div class="pay-msg-icon error">✗</div>';
-  else if(type==='pending') icn = '<div class="pay-msg-icon pending">↻</div>';
-  
-  mv.innerHTML = '<div class="pay-msg">' + icn +
-      '<h3 style="margin-bottom:0.5rem;color:#0F172A">' + title + '</h3>' +
-      '<p style="color:#475569;margin-bottom:1.5rem">' + desc + '</p>' +
-      actionHtml +
-    '</div>';
-}
-
-async function handlePlanSubmit() {
-  const nombre = document.getElementById('pm-nombre').value.trim();
-  const email = document.getElementById('pm-email').value.trim();
-  const whatsapp = document.getElementById('pm-whatsapp').value.trim();
-  const pais = document.getElementById('pm-pais').value;
-
-  if(!nombre || !email || !whatsapp || !pais) {
-    return;
-  }
-
-  try{localStorage.setItem('psicoatrading_user_data',JSON.stringify({nombre,email,pais}));}catch(e){}
-
-  const btn = document.getElementById('pm-btn');
-  btn.disabled = true;
-  btn.textContent = 'Procesando...';
-
-  try {
-    const res = await fetch('/api/plan-register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, email, whatsapp, pais, plan: currentPlan.name, precio_usd: currentPlan.price, periodo: currentPlan.period })
-    });
-    
-    let result;
-    if (res.ok) {
-        result = await res.json();
-    } else {
-        throw new Error("Backend no disponible, usando mock");
-    }
-    
-    startWompi(result, nombre, email, whatsapp);
-  } catch(e) {
-    const mockResult = {
-      reference: 'ORDER-' + Math.random().toString(36).substr(2, 9),
-      amount_in_cents: currentPlan.price * 4000 * 100,
-      currency: 'COP',
-      public_key: 'pub_test_Q5yDA9xoKdePzhSGeTa1Xn6bFcwU1Xy7',
-      signature: 'dummy'
-    };
-    startWompi(mockResult, nombre, email, whatsapp);
-  }
-}
-
-function startWompi(result, nombre, email, whatsapp) {
-    const btn = document.getElementById('pm-btn');
-    if (typeof WidgetCheckout === 'undefined') {
-        showModalMsg('error', 'Error', 'No se pudo cargar Wompi.', '<button class="modal-btn" onclick="resetModalContent()">Intentar de nuevo</button>');
-        return;
-    }
-    const checkout = new WidgetCheckout({
-      currency: result.currency,
-      amountInCents: result.amount_in_cents,
-      reference: result.reference,
-      publicKey: result.public_key,
-      signature: { integrity: result.signature },
-      customerData: { email, fullName: nombre, phoneNumber: whatsapp },
-      onComplete: function(res) {
-          const stat = Math.random();
-          if(stat > 0.3) {
-            showModalMsg('success', '¡Pago exitoso!', 'Tu plan ' + currentPlan.name + ' ha sido activado. Revisa tu email.', '<button class="modal-btn" onclick="closePlanModal()">Ir al portal →</button>');
-          } else if (stat > 0.1) {
-            showModalMsg('error', 'Pago no aprobado', 'Tu método de pago fue rechazado.', '<button class="modal-btn" onclick="resetModalContent()">Intentar de nuevo</button>');
-          } else {
-            showModalMsg('pending', 'Pago en proceso...', 'Estamos verificando tu transacción. Recibirás un email.', '<button class="modal-btn" onclick="closePlanModal()">Cerrar</button>');
-          }
-      },
-      onClose: function() {
-          btn.disabled = false;
-          btn.textContent = 'Continuar al pago →';
-      }
-    });
-    checkout.open();
-}
 </script>
 </body>
 </html>
