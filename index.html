@@ -1108,15 +1108,8 @@ function openPay(btn){
   document.getElementById('paySumAmt').textContent=fmtUSD(PAY.price);
   document.getElementById('paySumPer').textContent=PAY.period==='pago único'?'pago único':'USD / mes';
   populateCountrySelects();
-  // prefill from localStorage
-  try{
-    const d=JSON.parse(localStorage.getItem('psicoatrading_user_data')||'null');
-    if(d){
-      if(d.nombre)document.getElementById('pay-nombre').value=d.nombre;
-      if(d.email)document.getElementById('pay-email').value=d.email;
-      if(d.pais){const s=document.getElementById('pay-pais');s.value=d.pais;}
-    }
-  }catch(e){}
+  // El formulario de pago siempre inicia vacio: el comprador puede ser
+  // una persona distinta a quien hizo el test o el contacto.
   const ov=document.getElementById('payOverlay');ov.classList.add('open');document.body.style.overflow='hidden';
 }
 function closePay(){document.getElementById('payOverlay').classList.remove('open');document.body.style.overflow='';}
@@ -1168,7 +1161,7 @@ function launchWompi(res,cust){
       reference:res.reference,
       publicKey:res.public_key,
       signature:{integrity:res.signature},
-      customerData:{email:cust.email,fullName:cust.nombre,phoneNumber:cust.whatsapp}
+      customerData:{email:cust.email,fullName:cust.nombre}
     });
     checkout.open(function(result){
       payWait();
