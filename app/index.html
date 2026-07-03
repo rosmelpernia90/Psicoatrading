@@ -2747,19 +2747,25 @@ async function endAsignacion(id) {
 }
 
 async function openAsignModal() {
-  // Cargar psicólogos y pacientes disponibles
-  const [psData, pacData] = await Promise.all([
+  // Cargar psicólogos disponibles y clientes registrados del portal.
+  // Nota: los pacientes asignables son CLIENTES (usuarios con cuenta),
+  // no leads — el backend valida contra la tabla clients.
+  const [psData, usersData] = await Promise.all([
     api('/api/psicologos'),
-    api('/api/leads?limit=200')
+    api('/api/admin/users')
   ]);
-  if (!psData || !pacData) return;
-  const psicos = (psData.psychologists || []).filter(p => p.esta_disponible && p.active_patients < p.max_pacientes);
-  const pacientes = (pacData.leads || []);
+  if (!psData || !usersData) return;
+  const psicos = (psData.psicologos || []).filter(p => p.is_active && p.esta_disponible && p.slots_available > 0);
+  const pacientes = (usersData.users || []).filter(u => u.user_type === 'client' && u.is_active);
 
-  document.getElementById('asign-psico-sel').innerHTML = '<option value="">— Psicólogo —</option>' +
-    psicos.map(p => `<option value="${p.id}">${p.name} (${p.active_patients}/${p.max_pacientes})</option>`).join('');
-  document.getElementById('asign-pac-sel').innerHTML = '<option value="">— Paciente —</option>' +
-    pacientes.map(p => `<option value="${p.id}">${p.name} · ${p.email}</option>`).join('');
+  document.getElementById('asign-psico-sel').innerHTML = psicos.length
+    ? '<option value="">— Psicólogo —</option>' +
+      psicos.map(p => `<option value="${p.id}">${p.name} (${p.current_load}/${p.max_pacientes})</option>`).join('')
+    : '<option value="">No hay psicólogos disponibles</option>';
+  document.getElementById('asign-pac-sel').innerHTML = pacientes.length
+    ? '<option value="">— Paciente —</option>' +
+      pacientes.map(p => `<option value="${p.id}">${p.name} · ${p.email}</option>`).join('')
+    : '<option value="">No hay clientes registrados</option>';
   document.getElementById('asign-msg').textContent = '';
   document.getElementById('asign-modal').style.display = 'flex';
 }
