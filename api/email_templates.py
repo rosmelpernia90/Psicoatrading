@@ -13,11 +13,16 @@ def get_base_template(content: str) -> str:
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
                     <!-- Header -->
                     <tr>
-                        <td style="background-color:#0B1426;padding:24px 32px;text-align:center;">
-                            <h1 style="color:#2DD4BF;margin:0;font-size:24px;letter-spacing:1px;">PsicoaTrading</h1>
-                            <p style="color:#94A3B8;margin:4px 0 0;font-size:13px;">Psicología Aplicada al Trading</p>
+                        <td style="background-color:#0B1426;padding:28px 32px 24px;text-align:center;">
+                            <a href="https://psicoatrading.online" style="text-decoration:none;">
+                                <img src="https://psicoatrading.online/logo.png" alt="PsicoaTrading" width="72" height="72" style="display:block;margin:0 auto 12px;border:0;border-radius:50%;">
+                            </a>
+                            <h1 style="color:#2DD4BF;margin:0;font-size:24px;letter-spacing:1px;font-family:Georgia,'Times New Roman',serif;">PsicoaTrading</h1>
+                            <p style="color:#94A3B8;margin:6px 0 0;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Psicología Aplicada al Trading</p>
                         </td>
                     </tr>
+                    <!-- Linea de acento -->
+                    <tr><td style="height:4px;background:linear-gradient(90deg,#E0352B 0%,#F26A1B 50%,#F5B814 100%);background-color:#2DD4BF;font-size:0;line-height:0;">&nbsp;</td></tr>
                     <!-- Content -->
                     <tr>
                         <td style="padding:32px;color:#1E293B;font-size:15px;line-height:1.6;">
