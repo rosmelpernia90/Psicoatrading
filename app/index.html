@@ -901,6 +901,23 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   </div>
 </div>
 
+<!-- ===== MODAL APROBAR CAMBIO DE PSICÓLOGO ===== -->
+<div id="aprobar-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:440px;padding:2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.2rem">Aprobar cambio de psicólogo</h2>
+      <button onclick="closeAprobarModal()" style="background:none;border:none;font-size:1.5rem;color:var(--ink3);line-height:1;cursor:pointer">×</button>
+    </div>
+    <p id="aprobar-paciente" style="font-size:.88rem;color:var(--ink2);margin-bottom:1rem"></p>
+    <div class="form-group"><label class="form-label">Nuevo psicólogo</label><select class="form-input" id="aprobar-psico-sel"><option value="">— Cargando —</option></select></div>
+    <div class="form-group"><label class="form-label">Notas admin (opcional)</label><input class="form-input" id="aprobar-notas" type="text" placeholder="Motivo o contexto del cambio"></div>
+    <div style="margin-top:1.25rem;text-align:right;display:flex;align-items:center;gap:1rem;justify-content:flex-end">
+      <span id="aprobar-msg" style="font-size:.85rem"></span>
+      <button id="aprobar-save-btn" class="btn-gold" onclick="saveAprobarSolicitud()">Aprobar cambio</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL USUARIO ===== -->
 <div id="user-modal" class="modal-backdrop" style="display:none" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
   <div class="modal-card">
@@ -2843,14 +2860,48 @@ function renderSolicitudes(list) {
   </tr>`).join('');
 }
 
+let aprobarSolicitudId = null;
+
 async function aprobarSolicitud(id) {
-  const psicoId = prompt('ID del nuevo psicólogo a asignar:');
-  if (!psicoId || isNaN(parseInt(psicoId))) return;
-  const notes = prompt('Notas admin (opcional):') || '';
-  const res = await api('/api/cambio-psicologo/' + id + '/aprobar', {
-    method:'POST', body: JSON.stringify({ new_psicologo_id: parseInt(psicoId), admin_notes: notes })
+  aprobarSolicitudId = id;
+  const sol = allSolicitudes.find(s => s.id === id);
+  document.getElementById('aprobar-paciente').textContent = sol
+    ? `Paciente: ${sol.paciente_name} · Psicólogo actual: ${sol.current_psicologo_name || '—'}`
+    : '';
+  document.getElementById('aprobar-notas').value = '';
+  document.getElementById('aprobar-msg').textContent = '';
+  document.getElementById('aprobar-modal').style.display = 'flex';
+
+  const psData = await api('/api/psicologos');
+  const actual = sol ? sol.current_psicologo_id : null;
+  const psicos = ((psData && psData.psicologos) || [])
+    .filter(p => p.is_active && p.esta_disponible && p.slots_available > 0 && p.id !== actual);
+  document.getElementById('aprobar-psico-sel').innerHTML = psicos.length
+    ? '<option value="">— Selecciona el nuevo psicólogo —</option>' +
+      psicos.map(p => `<option value="${p.id}">${p.name} (${p.current_load}/${p.max_pacientes})</option>`).join('')
+    : '<option value="">No hay psicólogos disponibles</option>';
+}
+
+function closeAprobarModal() {
+  document.getElementById('aprobar-modal').style.display = 'none';
+  aprobarSolicitudId = null;
+}
+
+async function saveAprobarSolicitud() {
+  const psicoId = parseInt(document.getElementById('aprobar-psico-sel').value);
+  const msg = document.getElementById('aprobar-msg');
+  if (!psicoId) { msg.style.color = 'var(--amber)'; msg.textContent = 'Selecciona el nuevo psicólogo.'; return; }
+  const notes = document.getElementById('aprobar-notas').value.trim();
+  const btn = document.getElementById('aprobar-save-btn');
+  btn.disabled = true;
+  const res = await api('/api/cambio-psicologo/' + aprobarSolicitudId + '/aprobar', {
+    method:'POST', body: JSON.stringify({ nuevo_psicologo_id: psicoId, admin_notes: notes || null })
   });
-  if (res) { loadSolicitudes(); loadAsignaciones(); }
+  btn.disabled = false;
+  if (!res) { msg.style.color = 'var(--red)'; msg.textContent = 'No se pudo aprobar el cambio.'; return; }
+  closeAprobarModal();
+  loadSolicitudes();
+  loadAsignaciones();
 }
 
 async function rechazarSolicitud(id) {
