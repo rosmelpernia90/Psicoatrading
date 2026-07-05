@@ -546,6 +546,14 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
 .pay-msg-icon.error { color: #EF4444; }
 .pay-msg-icon.pending { color: #F59E0B; animation: spin 2s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* ============================================================
+   FEATURE FLAG - PLANES OCULTOS TEMPORALMENTE (jul 2026)
+   Para volver a mostrar el modulo de planes: ELIMINAR SOLO LA
+   LINEA DE ABAJO. Todo el codigo, botones y la pasarela de pago
+   quedan intactos.
+   ============================================================ */
+#nl-planes,#nl-planes-mob,#sec-planes-home,#page-planes{display:none!important}
 </style>
 <script src="https://checkout.wompi.co/widget.js"></script>
 </head>
@@ -586,7 +594,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
   <button onclick="sp('home');closeMob()">Inicio</button>
   <button onclick="sp('test-sel');closeMob()">Tests Gratuitos</button>
   <button onclick="sp('blog');closeMob()">Blog</button>
-  <button onclick="sp('planes');closeMob()">Planes</button>
+  <button id="nl-planes-mob" onclick="sp('planes');closeMob()">Planes</button>
   <button onclick="sp('contact');closeMob()">Contacto</button>
   <button class="nav-cta" onclick="sp('test-sel');closeMob()">Hacer Test Gratuito →</button>
 </div>
@@ -716,7 +724,7 @@ footer{background:var(--foot);color:rgba(255,255,255,.55);padding:4.5rem 0 2rem}
     </div>
   </section>
 
-  <section class="section" style="background:var(--bg2)">
+  <section id="sec-planes-home" class="section" style="background:var(--bg2)">
     <div class="container">
       <div class="sh reveal"><span class="eyebrow">Planes</span><h2>Tres caminos para operar sin miedo, sin avaricia y sin ego</h2><p class="sh-sub">Da igual si operas en cuenta propia, ya estás fondeado o estás cansado de quebrar cuentas de fondeo: el problema casi nunca es la estrategia. Es tu psicología bajo presión.</p></div>
       <div class="price-wrap">
